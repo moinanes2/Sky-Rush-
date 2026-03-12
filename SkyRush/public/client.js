@@ -23,38 +23,70 @@ const caseConfigs = [
   { id: 3, name: 'Diamantkiste', src: 'Kiste3.png', price: 300 }
 ];
 
-const imageFiles = {
-  jet: 'Kampfjet.webp',
-  ufo: 'ufo.png',
-  coin: 'Münze.png',
-  x2: '2x.png',
-  blitz: 'Blitz.png',
-  shield: 'Schild.png',
-  speed: 'Speed.png',
-  clown: 'Clown.png',
-  freeSpin: 'Free spins.png',
-  wolke1: 'Wolke.png',
-  wolke2: 'Wolke (2).png',
-  wolke3: 'Wolke (3).png',
-  wolke4: 'Wolke (4).png',
-  wolke5: 'Wolke (5).png',
-  wolke6: 'Wolke (6).png'
+const assetCandidates = {
+  bg1: ['Hintergrund.jpg', 'hintergrund.jpg'],
+  bg2: ['Hintergrund Nacht.png', 'Hintergrund Nacht.jpg', 'hintergrund nacht.png'],
+  bg3: ['Hintergrund Weltraum.jpg', 'Hintergrund Weltraum.png', 'hintergrund weltraum.jpg'],
+  bg4: ['Hintergrund Wald.png', 'Hintergrund Wald.jpg', 'hintergrund wald.png'],
+
+  char1: ['mann.png', 'Mann.png', 'man.png', 'Man.png'],
+  char2: ['mann2.png', 'Mann2.png', 'man2.png', 'Man2.png'],
+  char3: ['Hund.png', 'hund.png'],
+  char4: ['Neon Tiger.png', 'Neon Tiger.jpg', 'neon tiger.png'],
+
+  jet: ['Kampfjet.webp', 'Kampfjet.png', 'kampfjet.webp', 'kampfjet.png'],
+  ufo: ['ufo.png', 'Ufo.png', 'UFO.png'],
+  coin: ['Münze.png', 'Muenze.png', 'münze.png', 'muenze.png'],
+  x2: ['2x.png', '2X.png'],
+  blitz: ['Blitz.png', 'blitz.png'],
+  shield: ['Schild.png', 'schild.png'],
+  speed: ['Speed.png', 'speed.png'],
+  clown: ['Clown.png', 'clown.png'],
+  freeSpin: ['Free spins.png', 'Free Spins.png', 'free spins.png'],
+  wolke1: ['Wolke.png', 'wolke.png'],
+  wolke2: ['Wolke (2).png', 'wolke (2).png'],
+  wolke3: ['Wolke (3).png', 'wolke (3).png'],
+  wolke4: ['Wolke (4).png', 'wolke (4).png'],
+  wolke5: ['Wolke (5).png', 'wolke (5).png'],
+  wolke6: ['Wolke (6).png', 'wolke (6).png']
 };
 
-const images = {};
-for (const bg of backgrounds) {
-  images['bg' + bg.id] = new Image();
-  images['bg' + bg.id].src = bg.src;
-}
-for (const ch of characters) {
-  images['char' + ch.id] = new Image();
-  images['char' + ch.id].src = ch.src;
-}
-for (const [key, src] of Object.entries(imageFiles)) {
-  images[key] = new Image();
-  images[key].src = src;
+function loadImageWithFallback(candidates) {
+  const img = new Image();
+  img.dataset.loadedOk = 'false';
+  img.dataset.failed = 'false';
+  const tries = Array.isArray(candidates) ? candidates.slice() : [candidates];
+  let index = 0;
+
+  function tryNext() {
+    if (index >= tries.length) {
+      img.dataset.failed = 'true';
+      return;
+    }
+    const src = tries[index++];
+    img.onload = () => {
+      img.dataset.loadedOk = 'true';
+      img.dataset.failed = 'false';
+    };
+    img.onerror = () => {
+      img.dataset.loadedOk = 'false';
+      tryNext();
+    };
+    img.src = src;
+  }
+
+  tryNext();
+  return img;
 }
 
+function imageReady(img) {
+  return !!img && img.complete && img.naturalWidth > 0;
+}
+
+const images = {};
+Object.entries(assetCandidates).forEach(([key, candidates]) => {
+  images[key] = loadImageWithFallback(candidates);
+});
 const menuMusic = new Audio('Music menü.mp3');
 menuMusic.loop = true;
 const gameMusic = new Audio('Music.mp3');
@@ -261,10 +293,31 @@ function playCoinPickup() { playSfx(coinSound); }
 function playCaseSound() { playSfx(caseSound); }
 
 function stopAllGameMusic() {
-  stopAudio(gameMusic);
-  stopAudio(altGameMusic);
-  stopAudio(twoPlayerMusic);
+  [gameMusic, altGameMusic, twoPlayerMusic].forEach(stopAudio);
   currentGameMusic = null;
+}
+
+function pauseAllGameMusic() {
+  [gameMusic, altGameMusic, twoPlayerMusic].forEach(a => a.pause());
+}
+
+function getSinglePlayerMusicAudio() {
+  if (selectedMode === 'classic') {
+    return (currentLevel === 1 || currentLevel === 3) ? gameMusic : altGameMusic;
+  }
+  if (selectedMode === 'endless') {
+    return Math.random() < 0.5 ? gameMusic : altGameMusic;
+  }
+  return gameMusic;
+}
+
+function getRandomTwoPlayerMusic() {
+  const chosen = Math.random() < 0.5 ? 'Epische musik.mp3' : 'Epische musik2.mp3';
+  if (twoPlayerMusic.src && !twoPlayerMusic.src.endsWith(chosen)) {
+    twoPlayerMusic.src = chosen;
+    twoPlayerMusic.load();
+  }
+  return twoPlayerMusic;
 }
 
 function startMenuMusic() {
@@ -272,37 +325,22 @@ function startMenuMusic() {
   safePlay(menuMusic);
 }
 
-function startSelectedGameMusic(audioFile) {
-  stopAllGameMusic();
+function startSingleGameMusic() {
   menuMusic.pause();
   menuMusic.currentTime = 0;
-  let target = gameMusic;
-  if (audioFile === 'Musik.mp3') target = altGameMusic;
-  if (audioFile === 'Epische musik.mp3' || audioFile === 'Epische musik2.mp3') {
-    twoPlayerMusic.src = audioFile;
-    twoPlayerMusic.load();
-    target = twoPlayerMusic;
-  }
-  currentGameMusic = target;
-  safePlay(target);
-}
-
-function getClassicMusicFile(level) {
-  return level === 2 || level === 4 ? 'Musik.mp3' : 'Music.mp3';
-}
-
-function startSingleGameMusic() {
-  if (selectedMode === 'classic') {
-    startSelectedGameMusic(getClassicMusicFile(currentLevel));
-    return;
-  }
-  if (selectedMode === 'endless') {
-    startSelectedGameMusic(endlessMusicOptions[Math.floor(Math.random() * endlessMusicOptions.length)]);
-  }
+  stopAllGameMusic();
+  currentGameMusic = getSinglePlayerMusicAudio();
+  currentGameMusic.currentTime = 0;
+  safePlay(currentGameMusic);
 }
 
 function startTwoPlayerMusic() {
-  startSelectedGameMusic(twoPlayerMusicOptions[Math.floor(Math.random() * twoPlayerMusicOptions.length)]);
+  menuMusic.pause();
+  menuMusic.currentTime = 0;
+  stopAllGameMusic();
+  currentGameMusic = getRandomTwoPlayerMusic();
+  currentGameMusic.currentTime = 0;
+  safePlay(currentGameMusic);
 }
 
 function resumeCurrentGameMusic() {
@@ -314,7 +352,6 @@ function enableMenuMusicOnce() {
   firstInteractionDone = true;
   startMenuMusic();
 }
-
 document.addEventListener('click', enableMenuMusicOnce);
 document.addEventListener('keydown', enableMenuMusicOnce);
 
@@ -346,6 +383,90 @@ function getActiveBackground() {
   if (selectedMode === 'classic') return getBackgroundImageById(String(currentLevel));
   if (selectedMode === 'twoplayer') return getBackgroundImageById(twoPlayer.background);
   return getBackgroundImageById(currentBg);
+}
+
+function drawImageOrFallback(img, x, y, w, h, fallbackType = 'rect') {
+  if (imageReady(img)) {
+    ctx.drawImage(img, x, y, w, h);
+    return;
+  }
+
+  if (fallbackType === 'background') {
+    const gradient = ctx.createLinearGradient(0, y, 0, y + h);
+    gradient.addColorStop(0, '#8dd6ff');
+    gradient.addColorStop(1, '#55aee8');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, w, h);
+    return;
+  }
+
+  if (fallbackType === 'player') {
+    ctx.fillStyle = '#ffdd55';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.15, y + h * 0.5);
+    ctx.lineTo(x + w * 0.85, y + h * 0.2);
+    ctx.lineTo(x + w * 0.78, y + h * 0.5);
+    ctx.lineTo(x + w * 0.85, y + h * 0.8);
+    ctx.closePath();
+    ctx.fill();
+    return;
+  }
+
+  if (fallbackType === 'jet') {
+    ctx.fillStyle = '#d9d9d9';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.1, y + h * 0.5);
+    ctx.lineTo(x + w * 0.9, y + h * 0.2);
+    ctx.lineTo(x + w * 0.72, y + h * 0.5);
+    ctx.lineTo(x + w * 0.9, y + h * 0.8);
+    ctx.closePath();
+    ctx.fill();
+    return;
+  }
+
+  if (fallbackType === 'ufo') {
+    ctx.fillStyle = '#b0ffea';
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h * 0.45, w * 0.42, h * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#88b7ff';
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h * 0.28, w * 0.2, h * 0.16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  if (fallbackType === 'coin') {
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  if (fallbackType === 'cloud') {
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.beginPath();
+    ctx.arc(x + w * 0.28, y + h * 0.58, h * 0.26, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.48, y + h * 0.42, h * 0.34, 0, Math.PI * 2);
+    ctx.arc(x + w * 0.68, y + h * 0.58, h * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  if (fallbackType === 'x2' || fallbackType === 'blitz' || fallbackType === 'shield' || fallbackType === 'speed') {
+    ctx.fillStyle = fallbackType === 'shield' ? '#6fd0ff' : fallbackType === 'blitz' ? '#fff27d' : fallbackType === 'speed' ? '#ff9c52' : '#ffd700';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#111';
+    ctx.font = `${Math.max(12, Math.floor(h * 0.45))}px Arial`;
+    ctx.textAlign = 'center';
+    const text = fallbackType === 'x2' ? '2X' : fallbackType === 'blitz' ? 'B' : fallbackType === 'shield' ? 'S' : 'SPD';
+    ctx.fillText(text, x + w / 2, y + h * 0.68);
+    return;
+  }
+
+  ctx.fillStyle = '#ff00aa';
+  ctx.fillRect(x, y, w, h);
 }
 
 function createVariedEnemy(areaTop, areaBottom, baseX, forcedType = null) {
@@ -412,8 +533,9 @@ function createTwoPlayerPlayer(name, controls, areaTop, areaBottom, sprite) {
     attackMessageUntil: 0,
     cooldowns: { jet: 0, ufo: 0, speed: 0, self2x: 0, selfBlitz: 0, selfShield: 0 }
   };
-  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 120, 'jet'));
-  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 290, 'ufo'));
+  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 40, 'jet'));
+  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 180, 'ufo'));
+  p.coinItems.push({ x: canvas.width * 0.7, y: areaTop + 35 + Math.random() * Math.max(20, areaBottom - areaTop - 85), w: 40, h: 40, speed: 3.8 });
   return p;
 }
 
@@ -436,14 +558,14 @@ function resetSinglePlayerState() {
   blitzUntil = 0;
   shieldHits = 0;
   shieldUntil = 0;
-  powerUpCooldownUntil = Date.now() + 12000;
+  powerUpCooldownUntil = Date.now() + 5000;
   endlessStartTime = Date.now();
 }
 
 function spawnSingleEnemies() {
   enemies = [];
-  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 140, 'jet'));
-  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 330, 'ufo'));
+  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 40, 'jet'));
+  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 210, 'ufo'));
 }
 
 function spawnSingleCloud() {
@@ -534,23 +656,40 @@ function rewardInfo(reward) {
 function getRewardPool(caseType) {
   if (caseType === 1) {
     return [
-      { type: 'x2', qty: 1, weight: 10 }, { type: 'shield', qty: 1, weight: 10 }, { type: 'blitz', qty: 1, weight: 10 },
-      { type: 'x2', qty: 2, weight: 3 }, { type: 'shield', qty: 2, weight: 3 }, { type: 'blitz', qty: 2, weight: 3 },
-      { type: 'case1spin', qty: 1, weight: 6 }, { type: 'nothing', qty: 1, weight: 55 }
+      { type: 'x2', qty: 1, weight: 10 },
+      { type: 'shield', qty: 1, weight: 10 },
+      { type: 'blitz', qty: 1, weight: 10 },
+      { type: 'x2', qty: 2, weight: 3 },
+      { type: 'shield', qty: 2, weight: 3 },
+      { type: 'blitz', qty: 2, weight: 3 },
+      { type: 'case1spin', qty: 1, weight: 6 },
+      { type: 'nothing', qty: 1, weight: 55 }
     ];
   }
   if (caseType === 2) {
     return [
-      { type: 'x2', qty: 1, weight: 10 }, { type: 'shield', qty: 1, weight: 10 }, { type: 'blitz', qty: 1, weight: 10 },
-      { type: 'x2', qty: 2, weight: 8 }, { type: 'shield', qty: 2, weight: 8 }, { type: 'blitz', qty: 2, weight: 8 },
-      { type: 'case1spin', qty: 1, weight: 4 }, { type: 'case2spin', qty: 1, weight: 8 }, { type: 'case2spin', qty: 2, weight: 4 },
+      { type: 'x2', qty: 1, weight: 10 },
+      { type: 'shield', qty: 1, weight: 10 },
+      { type: 'blitz', qty: 1, weight: 10 },
+      { type: 'x2', qty: 2, weight: 8 },
+      { type: 'shield', qty: 2, weight: 8 },
+      { type: 'blitz', qty: 2, weight: 8 },
+      { type: 'case1spin', qty: 1, weight: 4 },
+      { type: 'case2spin', qty: 1, weight: 8 },
+      { type: 'case2spin', qty: 2, weight: 4 },
       { type: 'nothing', qty: 1, weight: 30 }
     ];
   }
   return [
-    { type: 'x2', qty: 2, weight: 12 }, { type: 'shield', qty: 2, weight: 12 }, { type: 'blitz', qty: 2, weight: 12 },
-    { type: 'x2', qty: 3, weight: 10 }, { type: 'shield', qty: 3, weight: 10 }, { type: 'blitz', qty: 3, weight: 10 },
-    { type: 'case2spin', qty: 1, weight: 6 }, { type: 'case3spin', qty: 1, weight: 8 }, { type: 'case3spin', qty: 2, weight: 4 },
+    { type: 'x2', qty: 2, weight: 12 },
+    { type: 'shield', qty: 2, weight: 12 },
+    { type: 'blitz', qty: 2, weight: 12 },
+    { type: 'x2', qty: 3, weight: 10 },
+    { type: 'shield', qty: 3, weight: 10 },
+    { type: 'blitz', qty: 3, weight: 10 },
+    { type: 'case2spin', qty: 1, weight: 6 },
+    { type: 'case3spin', qty: 1, weight: 8 },
+    { type: 'case3spin', qty: 2, weight: 4 },
     { type: 'nothing', qty: 1, weight: 16 }
   ];
 }
@@ -818,39 +957,54 @@ function updateClassicLevelButtons() {
 
 function drawScrollingBackground(areaTop = 0, areaHeight = canvas.height) {
   const bg = getActiveBackground();
-  ctx.drawImage(bg, bgX, areaTop, canvas.width + 2, areaHeight);
-  ctx.drawImage(bg, bgX + canvas.width - 1, areaTop, canvas.width + 2, areaHeight);
-}
-
-function drawEnemy(enemy) {
-  if (enemy.type === 'jet') {
-    ctx.save();
-    ctx.translate(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.drawImage(images.jet, -enemy.w / 2, -enemy.h / 2, enemy.w, enemy.h);
-    ctx.restore();
-  } else {
-    ctx.drawImage(images.ufo, enemy.x, enemy.y, enemy.w, enemy.h);
-  }
-}
-
-function drawPowerIcon(type, x, y, w, h) {
-  if (type === '2x') ctx.drawImage(images.x2, x, y, w, h);
-  if (type === 'blitz') ctx.drawImage(images.blitz, x, y, w, h);
-  if (type === 'shield') ctx.drawImage(images.shield, x, y, w, h);
+  drawImageOrFallback(bg, bgX, areaTop, canvas.width + 2, areaHeight, 'background');
+  drawImageOrFallback(bg, bgX + canvas.width - 1, areaTop, canvas.width + 2, areaHeight, 'background');
 }
 
 function drawShieldOnChest(rect, active) {
   if (!active) return;
-  const sx = rect.x + rect.w / 2 - 10;
-  const sy = rect.y + rect.h / 2 - 10;
-  ctx.drawImage(images.shield, sx, sy, 20, 20);
+  if (imageReady(images.shield)) {
+    ctx.drawImage(images.shield, rect.x + rect.w / 2 - 10, rect.y + rect.h / 2 - 10, 20, 20);
+  } else {
+    drawImageOrFallback(null, rect.x + rect.w / 2 - 10, rect.y + rect.h / 2 - 10, 20, 20, 'shield');
+  }
 }
 
-function drawCanvasEffectCard(x, y, img, timeText, size = 56) {
+function drawEnemy(enemy) {
+  if (enemy.type === 'jet') {
+    if (imageReady(images.jet)) {
+      ctx.save();
+      ctx.translate(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(images.jet, -enemy.w / 2, -enemy.h / 2, enemy.w, enemy.h);
+      ctx.restore();
+    } else {
+      drawImageOrFallback(null, enemy.x, enemy.y, enemy.w, enemy.h, 'jet');
+    }
+  } else {
+    drawImageOrFallback(images.ufo, enemy.x, enemy.y, enemy.w, enemy.h, 'ufo');
+  }
+}
+
+function drawPowerIcon(type, x, y, w, h) {
+  if (type === '2x') drawImageOrFallback(images.x2, x, y, w, h, 'x2');
+  if (type === 'blitz') drawImageOrFallback(images.blitz, x, y, w, h, 'blitz');
+  if (type === 'shield') drawImageOrFallback(images.shield, x, y, w, h, 'shield');
+  if (type === 'speed') drawImageOrFallback(images.speed, x, y, w, h, 'speed');
+}
+
+function getSinglePowerText() {
+  const parts = [];
+  if (selectedMode === 'endless' && gameActive) {
+    parts.push('Zeit ' + Math.floor((Date.now() - endlessStartTime) / 1000) + 's');
+  }
+  return parts.join(' | ');
+}
+
+function drawCanvasEffectCard(x, y, imgEl, timeText, fallbackType, size = 56) {
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(x, y, size + 12, size + 30);
-  ctx.drawImage(img, x + 6, y + 4, size, size);
+  drawImageOrFallback(imgEl, x + 6, y + 4, size, size, fallbackType);
   ctx.fillStyle = 'white';
   ctx.font = '15px Arial';
   ctx.textAlign = 'center';
@@ -859,59 +1013,62 @@ function drawCanvasEffectCard(x, y, img, timeText, size = 56) {
 
 function drawSingleEffectCards() {
   const effects = [];
-  if (score2x && Date.now() < score2xUntil) effects.push({ img: images.x2, text: ((score2xUntil - Date.now()) / 1000).toFixed(1) + 's' });
-  if (Date.now() < blitzUntil) effects.push({ img: images.blitz, text: ((blitzUntil - Date.now()) / 1000).toFixed(1) + 's' });
-  if (shieldHits > 0 && Date.now() < shieldUntil) effects.push({ img: images.shield, text: ((shieldUntil - Date.now()) / 1000).toFixed(1) + 's' });
+  if (score2x && Date.now() < score2xUntil) effects.push({ img: images.x2, text: ((score2xUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'x2' });
+  if (Date.now() < blitzUntil) effects.push({ img: images.blitz, text: ((blitzUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'blitz' });
+  if (shieldHits > 0 && Date.now() < shieldUntil) effects.push({ img: images.shield, text: ((shieldUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'shield' });
   if (!effects.length) return;
   const cardWidth = 68;
   const gap = 12;
   const totalWidth = effects.length * cardWidth + (effects.length - 1) * gap;
-  const startX = (canvas.width - totalWidth) / 2;
-  effects.forEach((effect, index) => drawCanvasEffectCard(startX + index * (cardWidth + gap), 10, effect.img, effect.text, 56));
+  let startX = (canvas.width - totalWidth) / 2;
+  const y = 10;
+  effects.forEach((effect, index) => {
+    drawCanvasEffectCard(startX + index * (cardWidth + gap), y, effect.img, effect.text, effect.fallback, 56);
+  });
 }
 
 function drawTwoPlayerEffectCards(tpPlayer) {
   const effects = [];
-  if (Date.now() < tpPlayer.self2xUntil) effects.push({ img: images.x2, text: ((tpPlayer.self2xUntil - Date.now()) / 1000).toFixed(1) + 's' });
-  if (Date.now() < tpPlayer.blitzUntil) effects.push({ img: images.blitz, text: ((tpPlayer.blitzUntil - Date.now()) / 1000).toFixed(1) + 's' });
-  if (tpPlayer.shieldHits > 0 && Date.now() < tpPlayer.shieldUntil) effects.push({ img: images.shield, text: ((tpPlayer.shieldUntil - Date.now()) / 1000).toFixed(1) + 's' });
-  if (Date.now() < tpPlayer.speedDebuffUntil) effects.push({ img: images.speed, text: ((tpPlayer.speedDebuffUntil - Date.now()) / 1000).toFixed(1) + 's' });
+  if (Date.now() < tpPlayer.self2xUntil) effects.push({ img: images.x2, text: ((tpPlayer.self2xUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'x2' });
+  if (Date.now() < tpPlayer.blitzUntil) effects.push({ img: images.blitz, text: ((tpPlayer.blitzUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'blitz' });
+  if (tpPlayer.shieldHits > 0 && Date.now() < tpPlayer.shieldUntil) effects.push({ img: images.shield, text: ((tpPlayer.shieldUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'shield' });
+  if (Date.now() < tpPlayer.speedDebuffUntil) effects.push({ img: images.speed, text: ((tpPlayer.speedDebuffUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'speed' });
   if (!effects.length) return;
   const cardWidth = 56;
   const gap = 8;
   const totalWidth = effects.length * cardWidth + (effects.length - 1) * gap;
-  const startX = (canvas.width - totalWidth) / 2;
-  effects.forEach((effect, index) => drawCanvasEffectCard(startX + index * (cardWidth + gap), tpPlayer.areaTop + 36, effect.img, effect.text, 44));
-}
-
-function getSinglePowerText() {
-  const parts = [];
-  if (selectedMode === 'endless' && gameActive) {
-    const secs = Math.floor((Date.now() - endlessStartTime) / 1000);
-    parts.push('Zeit ' + secs + 's');
-  }
-  return parts.join(' | ');
+  let startX = (canvas.width - totalWidth) / 2;
+  const y = tpPlayer.areaTop + 36;
+  effects.forEach((effect, index) => {
+    drawCanvasEffectCard(startX + index * (cardWidth + gap), y, effect.img, effect.text, effect.fallback, 44);
+  });
 }
 
 function drawSinglePlayer() {
   drawScrollingBackground(0, canvas.height);
-  clouds.forEach(c => ctx.drawImage(images[c.img], c.x, c.y, 96, 56));
+
+  clouds.forEach(c => drawImageOrFallback(images[c.img], c.x, c.y, 96, 56, 'cloud'));
+
   if (gameActive || gameOver || pause) {
     const rect = { x: player.x, y: player.y, w: player.w, h: player.h };
-    ctx.drawImage(getCharacterImageById(currentCharacter), rect.x, rect.y, rect.w, rect.h);
+    drawImageOrFallback(getCharacterImageById(currentCharacter), rect.x, rect.y, rect.w, rect.h, 'player');
     drawShieldOnChest(rect, shieldHits > 0 && Date.now() < shieldUntil);
   }
+
   enemies.forEach(drawEnemy);
-  coins.forEach(c => ctx.drawImage(images.coin, c.x, c.y, 42, 42));
+  coins.forEach(c => drawImageOrFallback(images.coin, c.x, c.y, 42, 42, 'coin'));
   powerUps.forEach(p => drawPowerIcon(p.type, p.x, p.y, p.w, p.h));
+
   drawSingleEffectCards();
   powerDisplay.textContent = getSinglePowerText();
+
   if (gameActive && selectedMode === 'classic') {
     ctx.fillStyle = 'white';
     ctx.font = '20px Arial';
     ctx.textAlign = 'left';
     ctx.fillText('Score: ' + score + ' / ' + levelTargets[currentLevel], canvas.width - 180, 38);
   }
+
   scoreBoard.innerHTML = gameActive ? 'Score: ' + score + ' | Highscore: ' + highscore + ' | Münzen: ' + coinCounter : 'Highscore: ' + highscore + ' | Münzen: ' + coinCounter;
 }
 
@@ -920,28 +1077,37 @@ function drawTwoPlayerHalf(tpPlayer) {
   ctx.beginPath();
   ctx.rect(0, tpPlayer.areaTop, canvas.width, tpPlayer.areaBottom - tpPlayer.areaTop);
   ctx.clip();
+
   drawScrollingBackground(tpPlayer.areaTop, tpPlayer.areaBottom - tpPlayer.areaTop);
-  tpPlayer.clouds.forEach(c => ctx.drawImage(images[c.img], c.x, c.y, 90, 52));
+
+  tpPlayer.clouds.forEach(c => drawImageOrFallback(images[c.img], c.x, c.y, 90, 52, 'cloud'));
+
   const rect = { x: tpPlayer.x, y: tpPlayer.y, w: tpPlayer.w, h: tpPlayer.h };
-  ctx.drawImage(getCharacterImageById(tpPlayer.sprite), rect.x, rect.y, rect.w, rect.h);
+  drawImageOrFallback(getCharacterImageById(tpPlayer.sprite), rect.x, rect.y, rect.w, rect.h, 'player');
   drawShieldOnChest(rect, tpPlayer.shieldHits > 0 && Date.now() < tpPlayer.shieldUntil);
+
   tpPlayer.enemies.forEach(drawEnemy);
-  tpPlayer.coinItems.forEach(c => ctx.drawImage(images.coin, c.x, c.y, c.w, c.h));
+  tpPlayer.coinItems.forEach(c => drawImageOrFallback(images.coin, c.x, c.y, c.w, c.h, 'coin'));
   tpPlayer.powerItems.forEach(p => drawPowerIcon(p.type, p.x, p.y, p.w, p.h));
+
   ctx.restore();
+
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.fillRect(0, tpPlayer.areaTop, canvas.width, 30);
   ctx.fillStyle = 'white';
   ctx.font = '18px Arial';
   ctx.textAlign = 'left';
   ctx.fillText(tpPlayer.name + ' | Score: ' + tpPlayer.score + ' | Münzen: ' + tpPlayer.coins, 12, tpPlayer.areaTop + 21);
+
   drawTwoPlayerEffectCards(tpPlayer);
+
   if (Date.now() < tpPlayer.attackMessageUntil) {
     ctx.fillStyle = '#ffd700';
     ctx.font = '24px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(tpPlayer.attackMessage, canvas.width / 2, tpPlayer.areaTop + 108);
   }
+
   if (!tpPlayer.alive) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0, tpPlayer.areaTop, canvas.width, tpPlayer.areaBottom - tpPlayer.areaTop);
@@ -953,6 +1119,7 @@ function drawTwoPlayerHalf(tpPlayer) {
 }
 
 function drawTwoPlayer() {
+  if (!twoPlayer.p1 || !twoPlayer.p2) return;
   drawTwoPlayerHalf(twoPlayer.p1);
   drawTwoPlayerHalf(twoPlayer.p2);
   ctx.fillStyle = '#222';
@@ -963,41 +1130,8 @@ function drawTwoPlayer() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (twoPlayer.active && twoPlayer.p1 && twoPlayer.p2) drawTwoPlayer();
+  if (twoPlayer.active) drawTwoPlayer();
   else drawSinglePlayer();
-}
-
-function updateOnlineHelpText() {
-  if (!twoPlayer.active || !twoPlayer.p1 || !twoPlayer.p2) {
-    hudTop.classList.add('hidden');
-    hudBottom.classList.add('hidden');
-    return;
-  }
-  hudTop.innerHTML = `
-    <div>${twoPlayer.p1.name} (W / S)</div>
-    <div class="attackLine"><img src="Kampfjet.webp"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
-    <div class="attackLine"><img src="ufo.png"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
-    <div class="attackLine"><img src="Speed.png"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
-    <div class="attackLine"><img src="2x.png"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Blitz.png"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Schild.png"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
-  `;
-  hudBottom.innerHTML = `
-    <div>${twoPlayer.p2.name} (↑ / ↓)</div>
-    <div class="attackLine"><img src="Kampfjet.webp"><span>7 = Jet senden <span class="priceRed">5</span></span></div>
-    <div class="attackLine"><img src="ufo.png"><span>8 = UFO senden <span class="priceRed">8</span></span></div>
-    <div class="attackLine"><img src="Speed.png"><span>9 = Speed senden <span class="priceRed">10</span></span></div>
-    <div class="attackLine"><img src="2x.png"><span>J = 2X kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Blitz.png"><span>K = Blitz kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Schild.png"><span>L = Schild kaufen <span class="priceRed">8</span></span></div>
-  `;
-  hudTop.classList.remove('hidden');
-  hudBottom.classList.remove('hidden');
-}
-
-function hideTwoPlayerHelp() {
-  hudTop.classList.add('hidden');
-  hudBottom.classList.add('hidden');
 }
 
 function giveClassicReward(level) {
@@ -1025,6 +1159,7 @@ function startClassicLevel(level) {
   twoPlayer.online = false;
   hideTwoPlayerHelp();
   spawnSingleEnemies();
+  coins.push({ x: canvas.width * 0.72, y: canvas.height * 0.42, speed: 4.1 });
   closeAllMenus();
   startSingleGameMusic();
 }
@@ -1038,6 +1173,7 @@ function startEndless() {
   twoPlayer.online = false;
   hideTwoPlayerHelp();
   spawnSingleEnemies();
+  coins.push({ x: canvas.width * 0.72, y: canvas.height * 0.42, speed: 4.1 });
   closeAllMenus();
   startSingleGameMusic();
 }
@@ -1108,41 +1244,81 @@ function openOnlineLobby(role, lobby) {
   onlineState.role = role;
   onlineState.code = lobby.code;
   onlineState.ready = false;
+  document.getElementById('onlineReadyBtn').textContent = 'Bereit';
   applyLobbyChoices(lobby);
   openOnly(document.getElementById('onlineLobbyMenu'));
 }
 
-function startOnlineMatch(lobby) {
+function startOnlineTwoPlayer(lobby) {
   selectedMode = 'twoplayer';
-  difficultyFactor = NORMAL_MODE_FACTOR;
+  closeAllMenus();
   gameActive = false;
   gameOver = false;
   pause = false;
   bgX = 0;
-  closeAllMenus();
+
   twoPlayer.active = true;
   twoPlayer.over = false;
   twoPlayer.online = true;
   twoPlayer.host = onlineState.role === 'host';
   twoPlayer.guest = onlineState.role === 'guest';
   twoPlayer.background = lobby.bg;
-  twoPlayer.p1 = createTwoPlayerPlayer(lobby.hostName, { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' }, 0, canvas.height / 2 - 3, lobby.hostChar);
-  twoPlayer.p2 = createTwoPlayerPlayer(lobby.guestName, { up: 'arrowup', down: 'arrowdown', jet: '7', ufo: '8', speed: '9', self2x: 'j', selfBlitz: 'k', selfShield: 'l' }, canvas.height / 2 + 3, canvas.height, lobby.guestChar);
-  remoteKeyState = {};
+  twoPlayer.p1 = createTwoPlayerPlayer(lobby.hostName || 'Spieler 1', { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' }, 0, canvas.height / 2 - 3, lobby.hostChar || '1');
+  twoPlayer.p2 = createTwoPlayerPlayer(lobby.guestName || 'Spieler 2', { up: 'arrowup', down: 'arrowdown', jet: '7', ufo: '8', speed: '9', self2x: 'j', selfBlitz: 'k', selfShield: 'l' }, canvas.height / 2 + 3, canvas.height, lobby.guestChar || '3');
+
+  onlineSendInputEnabled = true;
   updateOnlineHelpText();
   startTwoPlayerMusic();
-  onlineSendInputEnabled = true;
 }
 
-function endTwoPlayer(winnerText, notifyRemote = true) {
-  if (!twoPlayer.active) return;
-  twoPlayer.over = true;
-  stopAllGameMusic();
-  document.getElementById('twoPlayerWinnerText').textContent = winnerText;
-  openOnly(document.getElementById('twoPlayerGameOverMenu'));
-  if (notifyRemote && socket && twoPlayer.online && twoPlayer.host) {
-    socket.emit('online:match-over', { winnerText });
-  }
+function updateOnlineHelpText() {
+  if (!twoPlayer.p1 || !twoPlayer.p2) return;
+  hudTop.innerHTML = `
+    <div>${twoPlayer.p1.name} (W / S)</div>
+    <div class="attackLine"><img src="Kampfjet.webp"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
+    <div class="attackLine"><img src="ufo.png"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
+    <div class="attackLine"><img src="Speed.png"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
+    <div class="attackLine"><img src="2x.png"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="Blitz.png"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="Schild.png"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
+  `;
+  hudBottom.innerHTML = `
+    <div>${twoPlayer.p2.name} (↑ / ↓)</div>
+    <div class="attackLine"><img src="Kampfjet.webp"><span>7 = Jet senden <span class="priceRed">5</span></span></div>
+    <div class="attackLine"><img src="ufo.png"><span>8 = UFO senden <span class="priceRed">8</span></span></div>
+    <div class="attackLine"><img src="Speed.png"><span>9 = Speed senden <span class="priceRed">10</span></span></div>
+    <div class="attackLine"><img src="2x.png"><span>J = 2X kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="Blitz.png"><span>K = Blitz kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="Schild.png"><span>L = Schild kaufen <span class="priceRed">8</span></span></div>
+  `;
+  hudTop.classList.remove('hidden');
+  hudBottom.classList.remove('hidden');
+}
+
+function hideTwoPlayerHelp() {
+  hudTop.classList.add('hidden');
+  hudBottom.classList.add('hidden');
+}
+
+function serializeInputState() {
+  return {
+    up: !!keyState['w'] || !!keyState['arrowup'],
+    down: !!keyState['s'] || !!keyState['arrowdown'],
+    actions: {
+      p1jet: !!keyState['1'],
+      p1ufo: !!keyState['2'],
+      p1speed: !!keyState['3'],
+      p1x2: !!keyState['4'],
+      p1blitz: !!keyState['5'],
+      p1shield: !!keyState['6'],
+      p2jet: !!keyState['7'],
+      p2ufo: !!keyState['8'],
+      p2speed: !!keyState['9'],
+      p2x2: !!keyState['j'],
+      p2blitz: !!keyState['k'],
+      p2shield: !!keyState['l']
+    }
+  };
 }
 
 function canUseTpAbility(tpPlayer, key, cost) {
@@ -1153,7 +1329,8 @@ function sendJetAttack(fromPlayer, toPlayer) {
   if (!canUseTpAbility(fromPlayer, 'jet', 5)) return;
   fromPlayer.coins -= 5;
   fromPlayer.cooldowns.jet = Date.now() + 3200;
-  toPlayer.enemies.push(createVariedEnemy(toPlayer.areaTop, toPlayer.areaBottom, getNextEnemyX(toPlayer.enemies), 'jet'));
+  const newEnemy = createVariedEnemy(toPlayer.areaTop, toPlayer.areaBottom, getNextEnemyX(toPlayer.enemies), 'jet');
+  toPlayer.enemies.push(newEnemy);
   toPlayer.attackMessage = 'Extra-Jet!';
   toPlayer.attackMessageUntil = Date.now() + 1500;
 }
@@ -1162,7 +1339,8 @@ function sendUfoAttack(fromPlayer, toPlayer) {
   if (!canUseTpAbility(fromPlayer, 'ufo', 8)) return;
   fromPlayer.coins -= 8;
   fromPlayer.cooldowns.ufo = Date.now() + 4200;
-  toPlayer.enemies.push(createVariedEnemy(toPlayer.areaTop, toPlayer.areaBottom, getNextEnemyX(toPlayer.enemies), 'ufo'));
+  const newEnemy = createVariedEnemy(toPlayer.areaTop, toPlayer.areaBottom, getNextEnemyX(toPlayer.enemies), 'ufo');
+  toPlayer.enemies.push(newEnemy);
   toPlayer.attackMessage = 'UFO-Angriff!';
   toPlayer.attackMessageUntil = Date.now() + 1500;
 }
@@ -1203,167 +1381,48 @@ function buySelfShield(tpPlayer) {
   tpPlayer.attackMessageUntil = Date.now() + 1400;
 }
 
-function triggerAbilityForPlayerKey(playerIndex, key) {
-  if (!twoPlayer.active || !twoPlayer.p1 || !twoPlayer.p2) return;
-  const fromPlayer = playerIndex === 1 ? twoPlayer.p1 : twoPlayer.p2;
-  const toPlayer = playerIndex === 1 ? twoPlayer.p2 : twoPlayer.p1;
-  const controls = fromPlayer.controls;
-  if (key === controls.jet) sendJetAttack(fromPlayer, toPlayer);
-  if (key === controls.ufo) sendUfoAttack(fromPlayer, toPlayer);
-  if (key === controls.speed) sendSpeedAttack(fromPlayer, toPlayer);
-  if (key === controls.self2x) buySelf2x(fromPlayer);
-  if (key === controls.selfBlitz) buySelfBlitz(fromPlayer);
-  if (key === controls.selfShield) buySelfShield(fromPlayer);
-}
+function processTwoPlayerActionsFromKeyState(state) {
+  if (!twoPlayer.p1 || !twoPlayer.p2) return;
+  if (state['1']) sendJetAttack(twoPlayer.p1, twoPlayer.p2);
+  if (state['2']) sendUfoAttack(twoPlayer.p1, twoPlayer.p2);
+  if (state['3']) sendSpeedAttack(twoPlayer.p1, twoPlayer.p2);
+  if (state['4']) buySelf2x(twoPlayer.p1);
+  if (state['5']) buySelfBlitz(twoPlayer.p1);
+  if (state['6']) buySelfShield(twoPlayer.p1);
 
-function getMoveStateForPlayer(tpPlayer, playerIndex) {
-  if (!twoPlayer.online || !twoPlayer.host) {
-    return {
-      up: !!keyState[tpPlayer.controls.up],
-      down: !!keyState[tpPlayer.controls.down]
-    };
-  }
-  if (playerIndex === 1) {
-    return { up: !!keyState[tpPlayer.controls.up], down: !!keyState[tpPlayer.controls.down] };
-  }
-  return { up: !!remoteKeyState[tpPlayer.controls.up], down: !!remoteKeyState[tpPlayer.controls.down] };
-}
-
-function updateSinglePlayer() {
-  if (!gameActive || pause || gameOver) return;
-  if (intro) {
-    player.x += 8;
-    if (player.x > 220) intro = false;
-    return;
-  }
-  const moveSpeed = Date.now() < blitzUntil ? player.speed * 1.75 : player.speed;
-  if (keyState[keybinds.up]) player.y -= moveSpeed;
-  if (keyState[keybinds.down]) player.y += moveSpeed;
-  const maxY = canvas.height - player.h;
-  if (player.y < 0) player.y = 0;
-  if (player.y > maxY) player.y = maxY;
-  if (score2x && Date.now() >= score2xUntil) score2x = false;
-  if (shieldHits > 0 && Date.now() >= shieldUntil) shieldHits = 0;
-  clouds.forEach(c => c.x -= c.speed);
-  clouds = clouds.filter(c => c.x > -120);
-  const speedFactor = getSpeedFactor(score, getDifficultyForCurrentMode());
-  enemies.forEach(enemy => {
-    enemy.x -= enemy.speedMul * 5.8 * speedFactor;
-    if (enemy.x < -100) {
-      const replacement = createVariedEnemy(0, canvas.height, getNextEnemyX(enemies), enemy.type);
-      Object.assign(enemy, replacement);
-      enemy.type = Math.random() < 0.45 ? 'jet' : 'ufo';
-    }
-    const dx = (player.x + player.hitW / 2) - (enemy.x + enemy.hitW / 2);
-    const dy = (player.y + player.hitH / 2) - (enemy.y + enemy.hitH / 2);
-    if (Math.abs(dx) < (player.hitW + enemy.hitW) / 2 - 8 && Math.abs(dy) < (player.hitH + enemy.hitH) / 2 - 8) handleSingleHit();
-  });
-  for (let i = coins.length - 1; i >= 0; i--) {
-    const c = coins[i];
-    c.x -= c.speed * speedFactor;
-    if (c.x < -50) { coins.splice(i, 1); continue; }
-    if (Math.abs((player.x + player.hitW / 2) - (c.x + 21)) < 40 && Math.abs((player.y + player.hitH / 2) - (c.y + 21)) < 40) {
-      coinCounter++;
-      localStorage.setItem('coins', coinCounter);
-      playCoinPickup();
-      coins.splice(i, 1);
-    }
-  }
-  for (let i = powerUps.length - 1; i >= 0; i--) {
-    const p = powerUps[i];
-    p.x -= p.speed * speedFactor;
-    if (p.x + p.w < 0) { powerUps.splice(i, 1); continue; }
-    if (Math.abs((player.x + player.hitW / 2) - (p.x + p.w / 2)) < 42 && Math.abs((player.y + player.hitH / 2) - (p.y + p.h / 2)) < 42) {
-      applySinglePower(p.type);
-      powerUps.splice(i, 1);
-    }
-  }
-}
-
-function updateTwoPlayerPlayer(tpPlayer, playerIndex) {
-  if (!tpPlayer.alive) return;
-  const controls = getMoveStateForPlayer(tpPlayer, playerIndex);
-  const boosted = Date.now() < tpPlayer.blitzUntil ? tpPlayer.speed * 1.75 : tpPlayer.speed;
-  const moveSpeed = Date.now() < tpPlayer.speedDebuffUntil ? boosted * 0.75 : boosted;
-  if (controls.up) tpPlayer.y -= moveSpeed;
-  if (controls.down) tpPlayer.y += moveSpeed;
-  const maxY = tpPlayer.areaBottom - tpPlayer.h;
-  if (tpPlayer.y < tpPlayer.areaTop) tpPlayer.y = tpPlayer.areaTop;
-  if (tpPlayer.y > maxY) tpPlayer.y = maxY;
-  if (tpPlayer.shieldHits > 0 && Date.now() >= tpPlayer.shieldUntil) tpPlayer.shieldHits = 0;
-  tpPlayer.clouds.forEach(c => c.x -= c.speed);
-  tpPlayer.clouds = tpPlayer.clouds.filter(c => c.x > -120);
-  const speedFactor = getSpeedFactor(tpPlayer.score, NORMAL_MODE_FACTOR);
-  tpPlayer.enemies.forEach(enemy => {
-    const extra = Date.now() < tpPlayer.speedDebuffUntil ? 1.7 : 0;
-    enemy.x -= enemy.speedMul * (5.4 + extra) * speedFactor;
-    if (enemy.x < -100) {
-      const replacement = createVariedEnemy(tpPlayer.areaTop, tpPlayer.areaBottom, getNextEnemyX(tpPlayer.enemies), enemy.type);
-      Object.assign(enemy, replacement);
-      enemy.type = Math.random() < 0.45 ? 'jet' : 'ufo';
-    }
-    const dx = (tpPlayer.x + tpPlayer.hitW / 2) - (enemy.x + enemy.hitW / 2);
-    const dy = (tpPlayer.y + tpPlayer.hitH / 2) - (enemy.y + enemy.hitH / 2);
-    if (Math.abs(dx) < (tpPlayer.hitW + enemy.hitW) / 2 - 8 && Math.abs(dy) < (tpPlayer.hitH + enemy.hitH) / 2 - 8) handleTwoPlayerHit(tpPlayer);
-  });
-  for (let i = tpPlayer.coinItems.length - 1; i >= 0; i--) {
-    const c = tpPlayer.coinItems[i];
-    c.x -= c.speed * speedFactor;
-    if (c.x + c.w < 0) { tpPlayer.coinItems.splice(i, 1); continue; }
-    if (Math.abs((tpPlayer.x + tpPlayer.hitW / 2) - (c.x + c.w / 2)) < 38 && Math.abs((tpPlayer.y + tpPlayer.hitH / 2) - (c.y + c.h / 2)) < 38) {
-      tpPlayer.coins++;
-      playCoinPickup();
-      tpPlayer.coinItems.splice(i, 1);
-    }
-  }
-  for (let i = tpPlayer.powerItems.length - 1; i >= 0; i--) {
-    const p = tpPlayer.powerItems[i];
-    p.x -= p.speed * speedFactor;
-    if (p.x + p.w < 0) { tpPlayer.powerItems.splice(i, 1); continue; }
-    if (Math.abs((tpPlayer.x + tpPlayer.hitW / 2) - (p.x + p.w / 2)) < 40 && Math.abs((tpPlayer.y + tpPlayer.hitH / 2) - (p.y + p.h / 2)) < 40) {
-      applyTwoPlayerPower(tpPlayer, p.type);
-      tpPlayer.powerItems.splice(i, 1);
-    }
-  }
-}
-
-function updateTwoPlayer() {
-  if (!twoPlayer.active || twoPlayer.over || pause || !twoPlayer.p1 || !twoPlayer.p2) return;
-  if (twoPlayer.online && !twoPlayer.host) return;
-  updateTwoPlayerPlayer(twoPlayer.p1, 1);
-  updateTwoPlayerPlayer(twoPlayer.p2, 2);
-  if (!twoPlayer.p1.alive && twoPlayer.p2.alive) { endTwoPlayer(twoPlayer.p2.name + ' gewinnt!'); return; }
-  if (!twoPlayer.p2.alive && twoPlayer.p1.alive) { endTwoPlayer(twoPlayer.p1.name + ' gewinnt!'); return; }
-  if (!twoPlayer.p1.alive && !twoPlayer.p2.alive) endTwoPlayer('Unentschieden!');
+  if (state['7']) sendJetAttack(twoPlayer.p2, twoPlayer.p1);
+  if (state['8']) sendUfoAttack(twoPlayer.p2, twoPlayer.p1);
+  if (state['9']) sendSpeedAttack(twoPlayer.p2, twoPlayer.p1);
+  if (state['j']) buySelf2x(twoPlayer.p2);
+  if (state['k']) buySelfBlitz(twoPlayer.p2);
+  if (state['l']) buySelfShield(twoPlayer.p2);
 }
 
 function updateSingleScoreTick() {
-  if (gameActive && !pause && !gameOver) {
-    const speedFactor = getSpeedFactor(score, getDifficultyForCurrentMode());
-    let gain = speedFactor;
-    if (score2x) gain *= 2;
-    if (adminDoubleScore) gain *= 2;
-    scoreFloat += gain;
-    score = Math.floor(scoreFloat);
-    if (score > highscore) {
-      highscore = score;
-      localStorage.setItem('highscore', highscore);
-    }
-    if (selectedMode === 'classic') {
-      const target = levelTargets[currentLevel];
-      if (score >= target) {
-        score = target;
-        gameActive = false;
-        pause = true;
-        if (currentLevel < 4 && highestUnlockedLevel < currentLevel + 1) {
-          highestUnlockedLevel = currentLevel + 1;
-          localStorage.setItem('highestUnlockedLevel', highestUnlockedLevel);
-          updateClassicLevelButtons();
-        }
-        giveClassicReward(currentLevel);
-        openOnly(document.getElementById('levelCompleteMenu'));
-        stopAllGameMusic();
+  if (!gameActive || pause || gameOver) return;
+  const speedFactor = getSpeedFactor(score, getDifficultyForCurrentMode());
+  let gain = speedFactor;
+  if (score2x) gain *= 2;
+  if (adminDoubleScore) gain *= 2;
+  scoreFloat += gain;
+  score = Math.floor(scoreFloat);
+  if (score > highscore) {
+    highscore = score;
+    localStorage.setItem('highscore', highscore);
+  }
+  if (selectedMode === 'classic') {
+    const target = levelTargets[currentLevel];
+    if (score >= target) {
+      score = target;
+      gameActive = false;
+      pause = true;
+      if (currentLevel < 4 && highestUnlockedLevel < currentLevel + 1) {
+        highestUnlockedLevel = currentLevel + 1;
+        localStorage.setItem('highestUnlockedLevel', highestUnlockedLevel);
+        updateClassicLevelButtons();
       }
+      giveClassicReward(currentLevel);
+      openOnly(document.getElementById('levelCompleteMenu'));
     }
   }
 }
@@ -1437,34 +1496,242 @@ function serializeTwoPlayerState() {
   }));
 }
 
-function applyRemoteTwoPlayerState(payload) {
-  if (!payload) return;
-  bgX = payload.bgX;
-  twoPlayer.background = payload.background;
-  twoPlayer.p1 = payload.p1;
-  twoPlayer.p2 = payload.p2;
-  twoPlayer.over = payload.over;
-  twoPlayer.winner = payload.winner || '';
+function applyTwoPlayerSnapshot(snapshot) {
+  if (!snapshot) return;
+  bgX = snapshot.bgX || 0;
+  twoPlayer.background = snapshot.background || '1';
+  twoPlayer.p1 = snapshot.p1;
+  twoPlayer.p2 = snapshot.p2;
+  twoPlayer.over = !!snapshot.over;
+  twoPlayer.winner = snapshot.winner || '';
+  if (twoPlayer.over) {
+    document.getElementById('twoPlayerWinnerText').textContent = twoPlayer.winner || 'Spiel vorbei';
+    openOnly(document.getElementById('twoPlayerGameOverMenu'));
+  }
 }
 
-function attachButtonSounds() {
-  document.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => { if (!btn.disabled) playButtonSound(); });
+function maybeSendSnapshot() {
+  if (!socket || !twoPlayer.online || !twoPlayer.host || !twoPlayer.active || twoPlayer.over) return;
+  const now = performance.now();
+  if (now - lastSnapshotSent < 40) return;
+  lastSnapshotSent = now;
+  socket.emit('online:state', { code: onlineState.code, snapshot: serializeTwoPlayerState() });
+}
+
+function leaveOnlineLobbyAndReturn() {
+  if (socket && onlineState.code) socket.emit('online:leave-lobby', { code: onlineState.code });
+  onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
+  goToMainMenu();
+}
+
+function updateSinglePlayer() {
+  if (!gameActive || pause || gameOver) return;
+
+  if (intro) {
+    player.x += 8;
+    if (player.x > 220) intro = false;
+    return;
+  }
+
+  const moveSpeed = Date.now() < blitzUntil ? player.speed * 1.75 : player.speed;
+  if (keyState[keybinds.up]) player.y -= moveSpeed;
+  if (keyState[keybinds.down]) player.y += moveSpeed;
+
+  const maxY = canvas.height - player.h;
+  if (player.y < 0) player.y = 0;
+  if (player.y > maxY) player.y = maxY;
+
+  if (score2x && Date.now() >= score2xUntil) score2x = false;
+  if (shieldHits > 0 && Date.now() >= shieldUntil) shieldHits = 0;
+
+  clouds.forEach(c => c.x -= c.speed);
+  clouds = clouds.filter(c => c.x > -120);
+
+  const speedFactor = getSpeedFactor(score, getDifficultyForCurrentMode());
+
+  enemies.forEach(enemy => {
+    enemy.x -= enemy.speedMul * 5.8 * speedFactor;
+    if (enemy.x < -100) {
+      const replacement = createVariedEnemy(0, canvas.height, getNextEnemyX(enemies), enemy.type);
+      enemy.x = replacement.x;
+      enemy.y = replacement.y;
+      enemy.w = replacement.w;
+      enemy.h = replacement.h;
+      enemy.hitW = replacement.hitW;
+      enemy.hitH = replacement.hitH;
+      enemy.speedMul = replacement.speedMul;
+      enemy.type = Math.random() < 0.45 ? 'jet' : 'ufo';
+    }
+
+    const dx = (player.x + player.hitW / 2) - (enemy.x + enemy.hitW / 2);
+    const dy = (player.y + player.hitH / 2) - (enemy.y + enemy.hitH / 2);
+    if (Math.abs(dx) < (player.hitW + enemy.hitW) / 2 - 8 && Math.abs(dy) < (player.hitH + enemy.hitH) / 2 - 8) {
+      handleSingleHit();
+    }
   });
+
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const c = coins[i];
+    c.x -= c.speed * speedFactor;
+    if (c.x < -50) {
+      coins.splice(i, 1);
+      continue;
+    }
+    if (Math.abs((player.x + player.hitW / 2) - (c.x + 21)) < 40 && Math.abs((player.y + player.hitH / 2) - (c.y + 21)) < 40) {
+      coinCounter++;
+      localStorage.setItem('coins', coinCounter);
+      playCoinPickup();
+      coins.splice(i, 1);
+    }
+  }
+
+  for (let i = powerUps.length - 1; i >= 0; i--) {
+    const p = powerUps[i];
+    p.x -= p.speed * speedFactor;
+    if (p.x + p.w < 0) {
+      powerUps.splice(i, 1);
+      continue;
+    }
+    if (Math.abs((player.x + player.hitW / 2) - (p.x + p.w / 2)) < 42 && Math.abs((player.y + player.hitH / 2) - (p.y + p.h / 2)) < 42) {
+      applySinglePower(p.type);
+      powerUps.splice(i, 1);
+    }
+  }
+}
+
+function updateTwoPlayerPlayer(tpPlayer, stateForMove, stateForActions) {
+  if (!tpPlayer || !tpPlayer.alive) return;
+
+  const boosted = Date.now() < tpPlayer.blitzUntil ? tpPlayer.speed * 1.75 : tpPlayer.speed;
+  const moveSpeed = Date.now() < tpPlayer.speedDebuffUntil ? boosted * 0.75 : boosted;
+
+  if (stateForMove.up) tpPlayer.y -= moveSpeed;
+  if (stateForMove.down) tpPlayer.y += moveSpeed;
+
+  const maxY = tpPlayer.areaBottom - tpPlayer.h;
+  if (tpPlayer.y < tpPlayer.areaTop) tpPlayer.y = tpPlayer.areaTop;
+  if (tpPlayer.y > maxY) tpPlayer.y = maxY;
+
+  if (tpPlayer.shieldHits > 0 && Date.now() >= tpPlayer.shieldUntil) tpPlayer.shieldHits = 0;
+
+  tpPlayer.clouds.forEach(c => c.x -= c.speed);
+  tpPlayer.clouds = tpPlayer.clouds.filter(c => c.x > -120);
+
+  const speedFactor = getSpeedFactor(tpPlayer.score, NORMAL_MODE_FACTOR);
+
+  tpPlayer.enemies.forEach(enemy => {
+    const extra = Date.now() < tpPlayer.speedDebuffUntil ? 1.7 : 0;
+    enemy.x -= enemy.speedMul * (5.4 + extra) * speedFactor;
+
+    if (enemy.x < -100) {
+      const replacement = createVariedEnemy(tpPlayer.areaTop, tpPlayer.areaBottom, getNextEnemyX(tpPlayer.enemies), enemy.type);
+      enemy.x = replacement.x;
+      enemy.y = replacement.y;
+      enemy.w = replacement.w;
+      enemy.h = replacement.h;
+      enemy.hitW = replacement.hitW;
+      enemy.hitH = replacement.hitH;
+      enemy.speedMul = replacement.speedMul;
+      enemy.type = Math.random() < 0.45 ? 'jet' : 'ufo';
+    }
+
+    const dx = (tpPlayer.x + tpPlayer.hitW / 2) - (enemy.x + enemy.hitW / 2);
+    const dy = (tpPlayer.y + tpPlayer.hitH / 2) - (enemy.y + enemy.hitH / 2);
+    if (Math.abs(dx) < (tpPlayer.hitW + enemy.hitW) / 2 - 8 && Math.abs(dy) < (tpPlayer.hitH + enemy.hitH) / 2 - 8) {
+      handleTwoPlayerHit(tpPlayer);
+    }
+  });
+
+  for (let i = tpPlayer.coinItems.length - 1; i >= 0; i--) {
+    const c = tpPlayer.coinItems[i];
+    c.x -= c.speed * speedFactor;
+    if (c.x + c.w < 0) {
+      tpPlayer.coinItems.splice(i, 1);
+      continue;
+    }
+    if (Math.abs((tpPlayer.x + tpPlayer.hitW / 2) - (c.x + c.w / 2)) < 38 && Math.abs((tpPlayer.y + tpPlayer.hitH / 2) - (c.y + c.h / 2)) < 38) {
+      tpPlayer.coins++;
+      playCoinPickup();
+      tpPlayer.coinItems.splice(i, 1);
+    }
+  }
+
+  for (let i = tpPlayer.powerItems.length - 1; i >= 0; i--) {
+    const p = tpPlayer.powerItems[i];
+    p.x -= p.speed * speedFactor;
+    if (p.x + p.w < 0) {
+      tpPlayer.powerItems.splice(i, 1);
+      continue;
+    }
+    if (Math.abs((tpPlayer.x + tpPlayer.hitW / 2) - (p.x + p.w / 2)) < 40 && Math.abs((tpPlayer.y + tpPlayer.hitH / 2) - (p.y + p.h / 2)) < 40) {
+      applyTwoPlayerPower(tpPlayer, p.type);
+      tpPlayer.powerItems.splice(i, 1);
+    }
+  }
+}
+
+function updateTwoPlayer() {
+  if (!twoPlayer.active || twoPlayer.over || pause || !twoPlayer.p1 || !twoPlayer.p2) return;
+
+  if (twoPlayer.online && !twoPlayer.host) return;
+
+  const p1Move = twoPlayer.online ? { up: !!remoteKeyState.host?.up, down: !!remoteKeyState.host?.down } : { up: !!keyState['w'], down: !!keyState['s'] };
+  const p2Move = twoPlayer.online ? { up: !!remoteKeyState.guest?.up, down: !!remoteKeyState.guest?.down } : { up: !!keyState['arrowup'], down: !!keyState['arrowdown'] };
+
+  updateTwoPlayerPlayer(twoPlayer.p1, p1Move);
+  updateTwoPlayerPlayer(twoPlayer.p2, p2Move);
+
+  if (!twoPlayer.online) {
+    processTwoPlayerActionsFromKeyState(keyState);
+  } else {
+    const hostActions = remoteKeyState.host?.actions || {};
+    const guestActions = remoteKeyState.guest?.actions || {};
+    if (hostActions.p1jet) sendJetAttack(twoPlayer.p1, twoPlayer.p2);
+    if (hostActions.p1ufo) sendUfoAttack(twoPlayer.p1, twoPlayer.p2);
+    if (hostActions.p1speed) sendSpeedAttack(twoPlayer.p1, twoPlayer.p2);
+    if (hostActions.p1x2) buySelf2x(twoPlayer.p1);
+    if (hostActions.p1blitz) buySelfBlitz(twoPlayer.p1);
+    if (hostActions.p1shield) buySelfShield(twoPlayer.p1);
+
+    if (guestActions.p2jet) sendJetAttack(twoPlayer.p2, twoPlayer.p1);
+    if (guestActions.p2ufo) sendUfoAttack(twoPlayer.p2, twoPlayer.p1);
+    if (guestActions.p2speed) sendSpeedAttack(twoPlayer.p2, twoPlayer.p1);
+    if (guestActions.p2x2) buySelf2x(twoPlayer.p2);
+    if (guestActions.p2blitz) buySelfBlitz(twoPlayer.p2);
+    if (guestActions.p2shield) buySelfShield(twoPlayer.p2);
+  }
+
+  if (!twoPlayer.p1.alive && twoPlayer.p2.alive) {
+    twoPlayer.over = true;
+    twoPlayer.winner = twoPlayer.p2.name + ' gewinnt!';
+  } else if (!twoPlayer.p2.alive && twoPlayer.p1.alive) {
+    twoPlayer.over = true;
+    twoPlayer.winner = twoPlayer.p1.name + ' gewinnt!';
+  } else if (!twoPlayer.p1.alive && !twoPlayer.p2.alive) {
+    twoPlayer.over = true;
+    twoPlayer.winner = 'Unentschieden!';
+  }
+
+  if (twoPlayer.over) {
+    stopAllGameMusic();
+    document.getElementById('twoPlayerWinnerText').textContent = twoPlayer.winner;
+    openOnly(document.getElementById('twoPlayerGameOverMenu'));
+  }
 }
 
 function renderLocalSetup() {
   const content = document.getElementById('localSetupContent');
   const nextBtn = document.getElementById('localSetupNextBtn');
+
   if (localSetupStep === 0) {
-    content.innerHTML = `<div class="stepText">Spieler 1 Name</div><input type="text" id="localName1Input" value="${localSetup.p1Name}" maxlength="16">`;
+    content.innerHTML = `<div class="stepText">Spieler 1 Name</div><input type="text" id="localName1Input" value="${localSetup.p1Name}" maxlength="16" placeholder="Spieler 1">`;
     nextBtn.textContent = 'Weiter';
   } else if (localSetupStep === 1) {
-    content.innerHTML = `<div class="stepText">Spieler 2 Name</div><input type="text" id="localName2Input" value="${localSetup.p2Name}" maxlength="16">`;
+    content.innerHTML = `<div class="stepText">Spieler 2 Name</div><input type="text" id="localName2Input" value="${localSetup.p2Name}" maxlength="16" placeholder="Spieler 2">`;
     nextBtn.textContent = 'Weiter';
   } else if (localSetupStep === 2) {
-    content.innerHTML = `<div class="stepText">${localSetup.p1Name} wählt Character</div><div id="localP1CharGrid" class="rowButtons"></div>`;
-    const grid = content.querySelector('#localP1CharGrid');
+    content.innerHTML = `<div class="stepText">${localSetup.p1Name} wählt Character</div><div id="localCharGrid1" class="rowButtons"></div>`;
+    const grid = content.querySelector('#localCharGrid1');
     characters.forEach(ch => {
       const card = document.createElement('div');
       card.className = 'cardBox' + (localSetup.p1Char === ch.id ? ' selectedCard' : '');
@@ -1474,8 +1741,8 @@ function renderLocalSetup() {
     });
     nextBtn.textContent = 'Weiter';
   } else if (localSetupStep === 3) {
-    content.innerHTML = `<div class="stepText">${localSetup.p2Name} wählt Character</div><div id="localP2CharGrid" class="rowButtons"></div>`;
-    const grid = content.querySelector('#localP2CharGrid');
+    content.innerHTML = `<div class="stepText">${localSetup.p2Name} wählt Character</div><div id="localCharGrid2" class="rowButtons"></div>`;
+    const grid = content.querySelector('#localCharGrid2');
     characters.forEach(ch => {
       const card = document.createElement('div');
       card.className = 'cardBox' + (localSetup.p2Char === ch.id ? ' selectedCard' : '');
@@ -1498,30 +1765,60 @@ function renderLocalSetup() {
   }
 }
 
-function resetAllData() {
-  localStorage.clear();
-  window.location.reload();
+function attachButtonSounds() {
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => { if (!btn.disabled) playButtonSound(); });
+  });
 }
 
-function leaveOnlineLobbyAndReturn() {
-  if (socket && onlineState.code) socket.emit('online:leave-lobby', { code: onlineState.code });
-  onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
-  twoPlayer.online = false;
-  twoPlayer.active = false;
-  twoPlayer.p1 = null;
-  twoPlayer.p2 = null;
-  hideTwoPlayerHelp();
-  startMenuMusic();
-  openOnly(document.getElementById('startMenu'));
+function resetAllData() {
+  [
+    'highscore','coins','bgSelected','characterSelected','highestUnlockedLevel','menuVolume','gameVolume','keybind_up','keybind_down',
+    'keybind_pause','keybind_restart','sfxMuted','inv_x2','inv_shield','inv_blitz','inv_caseSpin1','inv_caseSpin2','inv_caseSpin3'
+  ].forEach(k => localStorage.removeItem(k));
+  backgrounds.forEach(bg => { if (bg.id !== '1') localStorage.removeItem('bg' + bg.id + 'Owned'); });
+  characters.forEach(ch => { if (ch.id !== '1') localStorage.removeItem('char' + ch.id + 'Owned'); });
+
+  highscore = 0;
+  coinCounter = 0;
+  itemInventory = { x2: 0, shield: 0, blitz: 0 };
+  caseSpins = { 1: 0, 2: 0, 3: 0 };
+  ownedBackgrounds = new Set(['1']);
+  ownedCharacters = new Set(['1']);
+  currentBg = '1';
+  currentCharacter = '1';
+  highestUnlockedLevel = 1;
+  adminGodMode = false;
+  adminDoubleScore = false;
+  sfxMuted = false;
+  keybinds = { up: 'w', down: 's', pause: 'escape', restart: 'r' };
+
+  document.getElementById('menuVolume').value = 0.5;
+  document.getElementById('gameVolume').value = 0.5;
+  document.getElementById('muteSfxToggle').checked = false;
+  menuMusic.volume = 0.5;
+  gameMusic.volume = 0.5;
+  altGameMusic.volume = 0.5;
+  twoPlayerMusic.volume = 0.5;
+
+  saveOwnership();
+  saveInventory();
+  refreshKeybindButtons();
+  renderSkinsAndShop();
+  updateItemsMenu();
+  updateCasesMenu();
+  updateClassicLevelButtons();
+  goToMainMenu();
 }
 
 function bindUI() {
   document.getElementById('playButton').onclick = () => openOnly(document.getElementById('modeMenu'));
   document.getElementById('skinsButton').onclick = () => openOnly(document.getElementById('skinsMenu'));
   document.getElementById('shopButton').onclick = () => openOnly(document.getElementById('shopMenu'));
+  document.getElementById('casesButton').onclick = () => { updateCasesMenu(); openOnly(document.getElementById('casesMenu')); };
+  document.getElementById('itemsButton').onclick = () => { updateItemsMenu(); openOnly(document.getElementById('itemsMenu')); };
   document.getElementById('settingsButton').onclick = () => openOnly(document.getElementById('settingsMenu'));
-  document.getElementById('casesButton').onclick = () => openOnly(document.getElementById('casesMenu'));
-  document.getElementById('itemsButton').onclick = () => openOnly(document.getElementById('itemsMenu'));
+
   document.getElementById('backModeBtn').onclick = () => openOnly(document.getElementById('startMenu'));
   document.getElementById('backDifficultyBtn').onclick = () => openOnly(document.getElementById('modeMenu'));
   document.getElementById('backClassicBtn').onclick = () => openOnly(document.getElementById('modeMenu'));
@@ -1694,49 +1991,27 @@ function setupSocket() {
     onlineState.code = lobby.code;
     applyLobbyChoices(lobby);
   });
-  socket.on('online:start-game', lobby => {
-    onlineState.code = lobby.code;
-    onlineState.lobby = lobby;
-    onlineState.ready = false;
-    document.getElementById('onlineReadyBtn').textContent = 'Bereit';
-    startOnlineMatch(lobby);
+  socket.on('online:game-start', lobby => {
+    startOnlineTwoPlayer(lobby);
   });
-  socket.on('online:force-menu', () => {
-    showToast('Online-Lobby wurde geschlossen.');
-    goToMainMenu();
-  });
-  socket.on('online:input', payload => {
-    if (!twoPlayer.active || !twoPlayer.online || !twoPlayer.host) return;
-    if (payload.type === 'key') {
-      remoteKeyState[payload.key] = payload.down;
-      if (payload.down) triggerAbilityForPlayerKey(2, payload.key);
+  socket.on('online:state', snapshot => {
+    if (twoPlayer.online && twoPlayer.guest) {
+      applyTwoPlayerSnapshot(snapshot);
     }
   });
-  socket.on('online:state', payload => {
-    if (!twoPlayer.active || !twoPlayer.online || !twoPlayer.guest) return;
-    applyRemoteTwoPlayerState(payload);
-    updateOnlineHelpText();
+  socket.on('online:input', ({ role, input }) => {
+    remoteKeyState[role] = input;
   });
-  socket.on('online:match-over', payload => {
-    if (!twoPlayer.active || !twoPlayer.online) return;
-    twoPlayer.over = true;
-    stopAllGameMusic();
-    document.getElementById('twoPlayerWinnerText').textContent = payload.winnerText;
-    openOnly(document.getElementById('twoPlayerGameOverMenu'));
+  socket.on('online:lobby-left', () => {
+    onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
+    goToMainMenu();
   });
 }
 
-function maybeSendSnapshot() {
-  if (!socket || !twoPlayer.online || !twoPlayer.host || !twoPlayer.active || twoPlayer.over) return;
-  const now = performance.now();
-  if (now - lastSnapshotSent < 50) return;
-  lastSnapshotSent = now;
-  socket.emit('online:state', serializeTwoPlayerState());
-}
-
-function onKeyDown(e) {
+document.addEventListener('keydown', e => {
   const pressed = e.key.toLowerCase();
   keyState[pressed] = true;
+
   if (awaitingKeybind) {
     e.preventDefault();
     keybinds[awaitingKeybind] = pressed;
@@ -1749,7 +2024,7 @@ function onKeyDown(e) {
   if ((pressed === keybinds.pause || pressed === 'escape') && ((gameActive && !gameOver) || (twoPlayer.active && !twoPlayer.over))) {
     pause = !pause;
     if (pause) {
-      currentGameMusic?.pause();
+      pauseAllGameMusic();
       openOnly(document.getElementById('pauseMenu'));
     } else {
       closeAllMenus();
@@ -1763,37 +2038,38 @@ function onKeyDown(e) {
   }
 
   if (!twoPlayer.active && (selectedMode === 'classic' || selectedMode === 'endless') && gameActive && !pause && !gameOver) {
-    if (pressed === '1' && itemInventory.x2 > 0) { itemInventory.x2--; applySinglePower('2x'); saveInventory(); updateItemsMenu(); }
-    if (pressed === '2' && itemInventory.shield > 0) { itemInventory.shield--; applySinglePower('shield'); saveInventory(); updateItemsMenu(); }
-    if (pressed === '3' && itemInventory.blitz > 0) { itemInventory.blitz--; applySinglePower('blitz'); saveInventory(); updateItemsMenu(); }
-  }
-
-  if (twoPlayer.active && !twoPlayer.over && !pause) {
-    if (!twoPlayer.online) {
-      triggerAbilityForPlayerKey(1, pressed);
-      triggerAbilityForPlayerKey(2, pressed);
-    } else if (twoPlayer.host) {
-      triggerAbilityForPlayerKey(1, pressed);
-    } else if (twoPlayer.guest) {
-      if (socket && onlineSendInputEnabled) socket.emit('online:input', { type: 'key', key: pressed, down: true });
+    if (pressed === '1' && itemInventory.x2 > 0) {
+      itemInventory.x2--;
+      applySinglePower('2x');
+      saveInventory();
+      updateItemsMenu();
+    }
+    if (pressed === '2' && itemInventory.shield > 0) {
+      itemInventory.shield--;
+      applySinglePower('shield');
+      saveInventory();
+      updateItemsMenu();
+    }
+    if (pressed === '3' && itemInventory.blitz > 0) {
+      itemInventory.blitz--;
+      applySinglePower('blitz');
+      saveInventory();
+      updateItemsMenu();
     }
   }
 
-  if (twoPlayer.online && twoPlayer.host && socket && onlineSendInputEnabled && ['arrowup','arrowdown','7','8','9','j','k','l'].includes(pressed)) {
-    // host ignores remote control presses locally
+  if (twoPlayer.online && onlineSendInputEnabled && socket && onlineState.role) {
+    socket.emit('online:input', { code: onlineState.code, role: onlineState.role, input: serializeInputState() });
   }
-}
+});
 
-function onKeyUp(e) {
+document.addEventListener('keyup', e => {
   const pressed = e.key.toLowerCase();
   keyState[pressed] = false;
-  if (twoPlayer.active && twoPlayer.online && twoPlayer.guest && socket && onlineSendInputEnabled) {
-    socket.emit('online:input', { type: 'key', key: pressed, down: false });
+  if (twoPlayer.online && onlineSendInputEnabled && socket && onlineState.role) {
+    socket.emit('online:input', { code: onlineState.code, role: onlineState.role, input: serializeInputState() });
   }
-}
-
-document.addEventListener('keydown', onKeyDown);
-document.addEventListener('keyup', onKeyUp);
+});
 
 setInterval(updateSingleScoreTick, 200);
 setInterval(updateTwoPlayerScoreTick, 200);
