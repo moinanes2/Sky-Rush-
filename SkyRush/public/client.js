@@ -676,7 +676,7 @@ function updateCasesMenu() {
       <div class="smallText">${cfg.name} - ${cfg.price} Münzen</div>
       <button class="tightBtn">Öffnen</button>
     `;
-    card.querySelector('button').onclick = () => openCase(cfg.id);
+    card.querySelector('button').onclick = () => { playButtonSound(); openCase(cfg.id); };
     grid.appendChild(card);
   });
 }
@@ -696,32 +696,33 @@ function updateSingleItemBar() {
   }
 }
 
-function buildSkinCard(item, type, owned, selected, onClick, options = {}) {
-  const { showPrice = false, shopMode = false } = options;
+function buildSkinCard(item, type, owned, selected, onClick, showPrice = false) {
   const card = document.createElement('div');
   card.className = 'cardBox';
-
   const previewClass = type === 'bg' ? 'skinPreview' : 'characterPreview';
   const overlay = !owned ? '<div class="lockOverlay">🔒</div>' : '';
-
   let tag = '';
-  if (shopMode && owned) {
-    tag = '<div class="equippedTag" style="display:block;">Gekauft</div>';
-  } else if (!shopMode && selected) {
-    tag = '<div class="equippedTag" style="display:block;">Equipped</div>';
+  let buttonText = 'Select';
+  let buttonDisabled = false;
+
+  if (showPrice) {
+    if (owned) {
+      tag = '<div class="equippedTag" style="display:block;">Gekauft</div>';
+      buttonText = 'Gekauft';
+      buttonDisabled = true;
+    } else {
+      buttonText = 'Kaufen';
+    }
+  } else {
+    if (selected) {
+      tag = '<div class="equippedTag" style="display:block;">Equipped</div>';
+      buttonText = 'Equipped';
+    } else {
+      buttonText = 'Select';
+    }
   }
 
   const priceText = showPrice ? ` - ${item.price === 0 ? 'Gratis' : item.price + ' Münzen'}` : '';
-
-  let buttonText = 'Select';
-  let buttonDisabled = false;
-  if (shopMode) {
-    buttonText = owned ? 'Gekauft' : 'Kaufen';
-    buttonDisabled = owned;
-  } else {
-    buttonText = selected ? 'Equipped' : 'Select';
-  }
-
   card.innerHTML = `
     <div class="previewWrap">
       <img src="${item.src}" class="${previewClass}">
@@ -731,16 +732,11 @@ function buildSkinCard(item, type, owned, selected, onClick, options = {}) {
     <div class="smallText">${item.name}${priceText}</div>
     <button class="tightBtn" ${buttonDisabled ? 'disabled' : ''}>${buttonText}</button>
   `;
-
-  const button = card.querySelector('button');
-  if (!buttonDisabled) {
-    button.onclick = () => {
-      playButtonSound();
-      onClick();
-    };
-  }
-
-  if (selected && !shopMode) card.classList.add('selectedCard');
+  card.querySelector('button').onclick = () => {
+    if (!buttonDisabled) playButtonSound();
+    onClick();
+  };
+  if (selected && !showPrice) card.classList.add('selectedCard');
   return card;
 }
 
@@ -776,7 +772,7 @@ function renderSkinsAndShop() {
       localStorage.setItem('coins', coinCounter);
       saveOwnership();
       renderSkinsAndShop();
-    }, { showPrice: true, shopMode: true }));
+    }, true));
   });
 
   characters.forEach(ch => {
@@ -801,7 +797,7 @@ function renderSkinsAndShop() {
       localStorage.setItem('coins', coinCounter);
       saveOwnership();
       renderSkinsAndShop();
-    }, { showPrice: true, shopMode: true }));
+    }, true));
   });
 }
 
