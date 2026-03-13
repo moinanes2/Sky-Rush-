@@ -1,42 +1,46 @@
-const socket = typeof io !== 'undefined' ? io() : null;
+const socket = typeof io !== 'undefined' ? io({ transports: ['websocket', 'polling'] }) : null;
 
 const canvas = document.getElementById('Canvas01');
 const ctx = canvas.getContext('2d');
 
 const backgrounds = [
-  { id: '1', name: 'Standard', src: 'Hintergrund.jpg', price: 0 },
-  { id: '2', name: 'Nacht', src: 'Hintergrund Nacht.png', price: 100 },
-  { id: '3', name: 'Weltraum', src: 'Hintergrund Weltraum.jpg', price: 200 },
-  { id: '4', name: 'Wald', src: 'Hintergrund Wald.png', price: 300 }
+  { id: '1', name: 'Standard', assetKey: 'bg1', price: 0 },
+  { id: '2', name: 'Nacht', assetKey: 'bg2', price: 100 },
+  { id: '3', name: 'Weltraum', assetKey: 'bg3', price: 200 },
+  { id: '4', name: 'Wald', assetKey: 'bg4', price: 300 }
 ];
 
 const characters = [
-  { id: '1', name: 'Standard', src: 'mann.png', price: 0 },
-  { id: '2', name: 'Tiger Classic', src: 'mann2.png', price: 50 },
-  { id: '3', name: 'Hund', src: 'Hund.png', price: 100 },
-  { id: '4', name: 'Neon Tiger', src: 'Neon Tiger.png', price: 200 }
+  { id: '1', name: 'Standard', assetKey: 'char1', price: 0 },
+  { id: '2', name: 'Tiger Classic', assetKey: 'char2', price: 50 },
+  { id: '3', name: 'Hund', assetKey: 'char3', price: 100 },
+  { id: '4', name: 'Neon Tiger', assetKey: 'char4', price: 200 }
 ];
 
 const caseConfigs = [
-  { id: 1, name: 'Kupferkiste', src: 'Kiste.png', price: 50 },
-  { id: 2, name: 'Silberkiste', src: 'Kiste2.png', price: 100 },
-  { id: 3, name: 'Diamantkiste', src: 'Kiste3.png', price: 300 }
+  { id: 1, name: 'Kupferkiste', assetKey: 'case1', price: 50 },
+  { id: 2, name: 'Silberkiste', assetKey: 'case2', price: 100 },
+  { id: 3, name: 'Diamantkiste', assetKey: 'case3', price: 300 }
 ];
 
 const assetCandidates = {
-  bg1: ['Hintergrund.jpg', 'hintergrund.jpg'],
-  bg2: ['Hintergrund Nacht.png', 'Hintergrund Nacht.jpg', 'hintergrund nacht.png'],
-  bg3: ['Hintergrund Weltraum.jpg', 'Hintergrund Weltraum.png', 'hintergrund weltraum.jpg'],
-  bg4: ['Hintergrund Wald.png', 'Hintergrund Wald.jpg', 'hintergrund wald.png'],
+  bg1: ['Hintergrund.jpg', 'hintergrund.jpg', 'Hintergrund.png', 'hintergrund.png'],
+  bg2: ['Hintergrund Nacht.png', 'Hintergrund Nacht.jpg', 'hintergrund nacht.png', 'Nacht.png', 'nacht.png'],
+  bg3: ['Hintergrund Weltraum.jpg', 'Hintergrund Weltraum.png', 'hintergrund weltraum.jpg', 'Weltraum.jpg', 'weltraum.png'],
+  bg4: ['Hintergrund Wald.png', 'Hintergrund Wald.jpg', 'hintergrund wald.png', 'Wald.png', 'wald.png'],
 
-  char1: ['mann.png', 'Mann.png', 'man.png', 'Man.png'],
-  char2: ['mann2.png', 'Mann2.png', 'man2.png', 'Man2.png'],
-  char3: ['Hund.png', 'hund.png'],
-  char4: ['Neon Tiger.png', 'Neon Tiger.jpg', 'neon tiger.png'],
+  char1: ['mann.png', 'Mann.png', 'man.png', 'Man.png', 'spieler1.png', 'Spieler1.png', 'gras.png', 'Gras.png'],
+  char2: ['mann2.png', 'Mann2.png', 'man2.png', 'Man2.png', 'tiger.png', 'Tiger.png', 'Tiger Classic.png', 'tiger classic.png'],
+  char3: ['Hund.png', 'hund.png', 'dog.png', 'Dog.png'],
+  char4: ['Neon Tiger.png', 'Neon Tiger.jpg', 'neon tiger.png', 'NeonTiger.png', 'neontiger.png'],
+
+  case1: ['Kiste.png', 'kiste.png'],
+  case2: ['Kiste2.png', 'kiste2.png'],
+  case3: ['Kiste3.png', 'kiste3.png'],
 
   jet: ['Kampfjet.webp', 'Kampfjet.png', 'kampfjet.webp', 'kampfjet.png'],
   ufo: ['ufo.png', 'Ufo.png', 'UFO.png'],
-  coin: ['Münze.png', 'Muenze.png', 'münze.png', 'muenze.png'],
+  coin: ['Münze.png', 'Muenze.png', 'münze.png', 'muenze.png', 'coin.png', 'Coin.png'],
   x2: ['2x.png', '2X.png'],
   blitz: ['Blitz.png', 'blitz.png'],
   shield: ['Schild.png', 'schild.png'],
@@ -83,10 +87,41 @@ function imageReady(img) {
   return !!img && img.complete && img.naturalWidth > 0;
 }
 
+function makePlaceholderSrc(label = '?') {
+  const safe = String(label).replace(/[<>&"]/g, '');
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="120" viewBox="0 0 220 120">
+      <rect width="220" height="120" rx="16" fill="#2b2b2b"/>
+      <rect x="6" y="6" width="208" height="108" rx="12" fill="#4a4a4a"/>
+      <text x="110" y="68" text-anchor="middle" font-family="Arial" font-size="22" fill="#ffffff">${safe}</text>
+    </svg>
+  `;
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+}
+
+function getResolvedAssetSrc(assetKey, label = '') {
+  const img = images[assetKey];
+  if (img && img.src && img.dataset.failed !== 'true') return img.src;
+  return makePlaceholderSrc(label || assetKey);
+}
+
+function getBackgroundPreviewSrc(bg) {
+  return getResolvedAssetSrc(bg.assetKey, bg.name);
+}
+
+function getCharacterPreviewSrc(ch) {
+  return getResolvedAssetSrc(ch.assetKey, ch.name);
+}
+
+function getCasePreviewSrc(cfg) {
+  return getResolvedAssetSrc(cfg.assetKey, cfg.name);
+}
+
 const images = {};
 Object.entries(assetCandidates).forEach(([key, candidates]) => {
   images[key] = loadImageWithFallback(candidates);
 });
+
 const menuMusic = new Audio('Music menü.mp3');
 menuMusic.loop = true;
 const gameMusic = new Audio('Music.mp3');
@@ -101,9 +136,9 @@ const caseSound = new Audio('cs2 case.mp3');
 const buttonSound = new Audio('Knopf.mp3');
 
 const allMenus = [
-  'startMenu','modeMenu','difficultyMenu','classicMenu','twoPlayerChoiceMenu','localSetupMenu','onlineMenu','createLobbyMenu',
-  'joinLobbyMenu','onlineLobbyMenu','skinsMenu','shopMenu','casesMenu','itemsMenu','settingsMenu','adminLoginMenu','adminMenu',
-  'pauseMenu','singleGameOverMenu','levelCompleteMenu','twoPlayerGameOverMenu'
+  'startMenu', 'modeMenu', 'difficultyMenu', 'classicMenu', 'twoPlayerChoiceMenu', 'localSetupMenu', 'onlineMenu', 'createLobbyMenu',
+  'joinLobbyMenu', 'onlineLobbyMenu', 'skinsMenu', 'shopMenu', 'casesMenu', 'itemsMenu', 'settingsMenu', 'adminLoginMenu', 'adminMenu',
+  'pauseMenu', 'singleGameOverMenu', 'levelCompleteMenu', 'twoPlayerGameOverMenu'
 ].map(id => document.getElementById(id));
 
 const scoreBoard = document.getElementById('scoreBoard');
@@ -133,6 +168,7 @@ let caseAnimationFrame = null;
 let remoteKeyState = {};
 let onlineSendInputEnabled = false;
 let lastSnapshotSent = 0;
+let lastInputSent = 0;
 
 let adminGodMode = false;
 let adminDoubleScore = false;
@@ -533,9 +569,9 @@ function createTwoPlayerPlayer(name, controls, areaTop, areaBottom, sprite) {
     attackMessageUntil: 0,
     cooldowns: { jet: 0, ufo: 0, speed: 0, self2x: 0, selfBlitz: 0, selfShield: 0 }
   };
-  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 40, 'jet'));
-  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 180, 'ufo'));
-  p.coinItems.push({ x: canvas.width * 0.7, y: areaTop + 35 + Math.random() * Math.max(20, areaBottom - areaTop - 85), w: 40, h: 40, speed: 3.8 });
+  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 20, 'jet'));
+  p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 160, 'ufo'));
+  p.coinItems.push({ x: canvas.width * 0.62, y: areaTop + 35 + Math.random() * Math.max(20, areaBottom - areaTop - 85), w: 40, h: 40, speed: 3.8 });
   return p;
 }
 
@@ -564,8 +600,37 @@ function resetSinglePlayerState() {
 
 function spawnSingleEnemies() {
   enemies = [];
-  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 40, 'jet'));
-  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 210, 'ufo'));
+  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 20, 'jet'));
+  enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 160, 'ufo'));
+}
+
+function ensureSingleWorldObjects() {
+  if (!enemies.length) {
+    enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 20, 'jet'));
+    enemies.push(createVariedEnemy(0, canvas.height, canvas.width + 180, 'ufo'));
+  }
+  if (!coins.length) {
+    coins.push({ x: canvas.width * 0.68, y: canvas.height * 0.42, speed: 4.1 });
+  }
+}
+
+function ensureTwoPlayerWorldObjects(tpPlayer) {
+  if (!tpPlayer) return;
+
+  if (!tpPlayer.enemies.length) {
+    tpPlayer.enemies.push(createVariedEnemy(tpPlayer.areaTop, tpPlayer.areaBottom, canvas.width + 20, 'jet'));
+    tpPlayer.enemies.push(createVariedEnemy(tpPlayer.areaTop, tpPlayer.areaBottom, canvas.width + 180, 'ufo'));
+  }
+
+  if (!tpPlayer.coinItems.length) {
+    tpPlayer.coinItems.push({
+      x: canvas.width * 0.68,
+      y: tpPlayer.areaTop + 35 + Math.random() * Math.max(20, tpPlayer.areaBottom - tpPlayer.areaTop - 85),
+      w: 40,
+      h: 40,
+      speed: 3.8
+    });
+  }
 }
 
 function spawnSingleCloud() {
@@ -644,13 +709,13 @@ function handleTwoPlayerHit(tpPlayer) {
 }
 
 function rewardInfo(reward) {
-  if (reward.type === 'x2') return { label: reward.qty + 'x 2X', image: images.x2 };
-  if (reward.type === 'shield') return { label: reward.qty + 'x Schild', image: images.shield };
-  if (reward.type === 'blitz') return { label: reward.qty + 'x Blitz', image: images.blitz };
-  if (reward.type === 'case1spin') return { label: reward.qty + 'x Kupfer-Spin', image: images.freeSpin };
-  if (reward.type === 'case2spin') return { label: reward.qty + 'x Silber-Spin', image: images.freeSpin };
-  if (reward.type === 'case3spin') return { label: reward.qty + 'x Diamant-Spin', image: images.freeSpin };
-  return { label: 'Clown', image: images.clown };
+  if (reward.type === 'x2') return { label: reward.qty + 'x 2X', image: images.x2, src: getResolvedAssetSrc('x2', '2X') };
+  if (reward.type === 'shield') return { label: reward.qty + 'x Schild', image: images.shield, src: getResolvedAssetSrc('shield', 'Schild') };
+  if (reward.type === 'blitz') return { label: reward.qty + 'x Blitz', image: images.blitz, src: getResolvedAssetSrc('blitz', 'Blitz') };
+  if (reward.type === 'case1spin') return { label: reward.qty + 'x Kupfer-Spin', image: images.freeSpin, src: getResolvedAssetSrc('freeSpin', 'Spin') };
+  if (reward.type === 'case2spin') return { label: reward.qty + 'x Silber-Spin', image: images.freeSpin, src: getResolvedAssetSrc('freeSpin', 'Spin') };
+  if (reward.type === 'case3spin') return { label: reward.qty + 'x Diamant-Spin', image: images.freeSpin, src: getResolvedAssetSrc('freeSpin', 'Spin') };
+  return { label: 'Clown', image: images.clown, src: getResolvedAssetSrc('clown', 'Clown') };
 }
 
 function getRewardPool(caseType) {
@@ -714,7 +779,7 @@ function renderRouletteWindow(sequence, centerIndex) {
     const info = rewardInfo(reward);
     const card = document.createElement('div');
     card.className = 'rouletteCard' + (offset === 0 ? ' rouletteCenter' : '');
-    card.innerHTML = `<img src="${info.image.src}"><div>${info.label}</div>`;
+    card.innerHTML = `<img src="${info.src}"><div>${info.label}</div>`;
     container.appendChild(card);
   }
 }
@@ -811,7 +876,7 @@ function updateCasesMenu() {
     card.className = 'cardBox';
     card.innerHTML = `
       <div class="smallText">${formatCaseSpinText(caseSpins[cfg.id])}</div>
-      <img src="${cfg.src}" class="casePreview">
+      <img src="${getCasePreviewSrc(cfg)}" class="casePreview">
       <div class="smallText">${cfg.name} - ${cfg.price} Münzen</div>
       <button class="tightBtn">Öffnen</button>
     `;
@@ -825,9 +890,9 @@ function updateSingleItemBar() {
     singleItemBar.style.display = 'block';
     singleItemBar.innerHTML = `
       <div class="itemHotbar">
-        <div class="itemHotbarEntry"><img src="${images.x2.src}"><span>1 = ${itemInventory.x2}</span></div>
-        <div class="itemHotbarEntry"><img src="${images.shield.src}"><span>2 = ${itemInventory.shield}</span></div>
-        <div class="itemHotbarEntry"><img src="${images.blitz.src}"><span>3 = ${itemInventory.blitz}</span></div>
+        <div class="itemHotbarEntry"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>1 = ${itemInventory.x2}</span></div>
+        <div class="itemHotbarEntry"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>2 = ${itemInventory.shield}</span></div>
+        <div class="itemHotbarEntry"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>3 = ${itemInventory.blitz}</span></div>
       </div>
     `;
   } else {
@@ -839,6 +904,7 @@ function buildSkinCard(item, type, owned, selected, onClick, showPrice = false) 
   const card = document.createElement('div');
   card.className = 'cardBox';
   const previewClass = type === 'bg' ? 'skinPreview' : 'characterPreview';
+  const previewSrc = type === 'bg' ? getBackgroundPreviewSrc(item) : getCharacterPreviewSrc(item);
   const overlay = !owned ? '<div class="lockOverlay">🔒</div>' : '';
   let tag = '';
   let buttonText = 'Select';
@@ -864,7 +930,7 @@ function buildSkinCard(item, type, owned, selected, onClick, showPrice = false) 
   const priceText = showPrice ? ` - ${item.price === 0 ? 'Gratis' : item.price + ' Münzen'}` : '';
   card.innerHTML = `
     <div class="previewWrap">
-      <img src="${item.src}" class="${previewClass}">
+      <img src="${previewSrc}" class="${previewClass}">
       ${overlay}
       ${tag}
     </div>
@@ -1135,12 +1201,27 @@ function draw() {
 }
 
 function giveClassicReward(level) {
-  let rewardImage = 'Kiste.png';
+  let rewardImage = getCasePreviewSrc(caseConfigs[0]);
   let rewardText = '';
-  if (level === 1) { caseSpins[1] += 1; rewardImage = 'Kiste.png'; rewardText = 'Als Belohnung: 1 freier Spin für die Kupferkiste'; }
-  else if (level === 2) { caseSpins[2] += 1; rewardImage = 'Kiste2.png'; rewardText = 'Als Belohnung: 1 freier Spin für die Silberkiste'; }
-  else if (level === 3) { caseSpins[2] += 2; rewardImage = 'Kiste2.png'; rewardText = 'Als Belohnung: 2 freie Spins für die Silberkiste'; }
-  else if (level === 4) { caseSpins[3] += 1; rewardImage = 'Kiste3.png'; rewardText = 'Als Belohnung: 1 freier Spin für die Diamantkiste'; }
+
+  if (level === 1) {
+    caseSpins[1] += 1;
+    rewardImage = getCasePreviewSrc(caseConfigs[0]);
+    rewardText = 'Als Belohnung: 1 freier Spin für die Kupferkiste';
+  } else if (level === 2) {
+    caseSpins[2] += 1;
+    rewardImage = getCasePreviewSrc(caseConfigs[1]);
+    rewardText = 'Als Belohnung: 1 freier Spin für die Silberkiste';
+  } else if (level === 3) {
+    caseSpins[2] += 2;
+    rewardImage = getCasePreviewSrc(caseConfigs[1]);
+    rewardText = 'Als Belohnung: 2 freie Spins für die Silberkiste';
+  } else if (level === 4) {
+    caseSpins[3] += 1;
+    rewardImage = getCasePreviewSrc(caseConfigs[2]);
+    rewardText = 'Als Belohnung: 1 freier Spin für die Diamantkiste';
+  }
+
   saveInventory();
   updateItemsMenu();
   updateCasesMenu();
@@ -1206,7 +1287,15 @@ function applyLobbyChoices(lobby) {
   document.getElementById('lobbyGuestName').textContent = lobby.guestName || 'Wartet...';
   document.getElementById('lobbyHostReady').textContent = lobby.hostReady ? 'Bereit' : 'Nicht bereit';
   document.getElementById('lobbyGuestReady').textContent = lobby.guestReady ? 'Bereit' : 'Nicht bereit';
-  document.getElementById('onlineStartBtn').style.display = onlineState.role === 'host' ? 'inline-block' : 'none';
+
+  onlineState.ready = onlineState.role === 'host' ? !!lobby.hostReady : !!lobby.guestReady;
+  document.getElementById('onlineReadyBtn').textContent = onlineState.ready ? 'Nicht bereit' : 'Bereit';
+
+  const startBtn = document.getElementById('onlineStartBtn');
+  const canStart = !!(onlineState.role === 'host' && lobby.hostReady && lobby.guestReady && lobby.guestName);
+  startBtn.style.display = onlineState.role === 'host' ? 'inline-block' : 'none';
+  startBtn.disabled = !canStart;
+
   renderOnlinePickers();
 }
 
@@ -1217,21 +1306,24 @@ function renderOnlinePickers() {
   bgGrid.innerHTML = '';
   const lobby = onlineState.lobby;
   if (!lobby) return;
+
   const currentChar = onlineState.role === 'host' ? lobby.hostChar : lobby.guestChar;
+
   characters.forEach(ch => {
     const card = document.createElement('div');
     card.className = 'cardBox' + (currentChar === ch.id ? ' selectedCard' : '');
-    card.innerHTML = `<div class="previewWrap"><img src="${ch.src}" class="characterPreview"></div><div class="smallText">${ch.name}</div>`;
+    card.innerHTML = `<div class="previewWrap"><img src="${getCharacterPreviewSrc(ch)}" class="characterPreview"></div><div class="smallText">${ch.name}</div>`;
     card.onclick = () => {
       if (!socket) return;
       socket.emit('online:update-choice', { code: onlineState.code, role: onlineState.role, char: ch.id });
     };
     charGrid.appendChild(card);
   });
+
   backgrounds.forEach(bg => {
     const card = document.createElement('div');
     card.className = 'cardBox' + (lobby.bg === bg.id ? ' selectedCard' : '');
-    card.innerHTML = `<div class="previewWrap"><img src="${bg.src}" class="skinPreview"></div><div class="smallText">${bg.name}</div>`;
+    card.innerHTML = `<div class="previewWrap"><img src="${getBackgroundPreviewSrc(bg)}" class="skinPreview"></div><div class="smallText">${bg.name}</div>`;
     card.onclick = () => {
       if (!socket || onlineState.role !== 'host') return;
       socket.emit('online:update-choice', { code: onlineState.code, role: 'host', bg: bg.id });
@@ -1256,6 +1348,7 @@ function startOnlineTwoPlayer(lobby) {
   gameOver = false;
   pause = false;
   bgX = 0;
+  remoteKeyState = {};
 
   twoPlayer.active = true;
   twoPlayer.over = false;
@@ -1275,21 +1368,21 @@ function updateOnlineHelpText() {
   if (!twoPlayer.p1 || !twoPlayer.p2) return;
   hudTop.innerHTML = `
     <div>${twoPlayer.p1.name} (W / S)</div>
-    <div class="attackLine"><img src="Kampfjet.webp"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
-    <div class="attackLine"><img src="ufo.png"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
-    <div class="attackLine"><img src="Speed.png"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
-    <div class="attackLine"><img src="2x.png"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Blitz.png"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Schild.png"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
   `;
   hudBottom.innerHTML = `
     <div>${twoPlayer.p2.name} (↑ / ↓)</div>
-    <div class="attackLine"><img src="Kampfjet.webp"><span>7 = Jet senden <span class="priceRed">5</span></span></div>
-    <div class="attackLine"><img src="ufo.png"><span>8 = UFO senden <span class="priceRed">8</span></span></div>
-    <div class="attackLine"><img src="Speed.png"><span>9 = Speed senden <span class="priceRed">10</span></span></div>
-    <div class="attackLine"><img src="2x.png"><span>J = 2X kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Blitz.png"><span>K = Blitz kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="Schild.png"><span>L = Schild kaufen <span class="priceRed">8</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>7 = Jet senden <span class="priceRed">5</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>8 = UFO senden <span class="priceRed">8</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>9 = Speed senden <span class="priceRed">10</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>J = 2X kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>K = Blitz kaufen <span class="priceRed">6</span></span></div>
+    <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>L = Schild kaufen <span class="priceRed">8</span></span></div>
   `;
   hudTop.classList.remove('hidden');
   hudBottom.classList.remove('hidden');
@@ -1301,22 +1394,54 @@ function hideTwoPlayerHelp() {
 }
 
 function serializeInputState() {
+  if (onlineState.role === 'host') {
+    return {
+      up: !!keyState['w'],
+      down: !!keyState['s'],
+      actions: {
+        p1jet: !!keyState['1'],
+        p1ufo: !!keyState['2'],
+        p1speed: !!keyState['3'],
+        p1x2: !!keyState['4'],
+        p1blitz: !!keyState['5'],
+        p1shield: !!keyState['6'],
+        p2jet: false,
+        p2ufo: false,
+        p2speed: false,
+        p2x2: false,
+        p2blitz: false,
+        p2shield: false
+      }
+    };
+  }
+
+  if (onlineState.role === 'guest') {
+    return {
+      up: !!keyState['arrowup'],
+      down: !!keyState['arrowdown'],
+      actions: {
+        p1jet: false,
+        p1ufo: false,
+        p1speed: false,
+        p1x2: false,
+        p1blitz: false,
+        p1shield: false,
+        p2jet: !!keyState['7'],
+        p2ufo: !!keyState['8'],
+        p2speed: !!keyState['9'],
+        p2x2: !!keyState['j'],
+        p2blitz: !!keyState['k'],
+        p2shield: !!keyState['l']
+      }
+    };
+  }
+
   return {
-    up: !!keyState['w'] || !!keyState['arrowup'],
-    down: !!keyState['s'] || !!keyState['arrowdown'],
+    up: false,
+    down: false,
     actions: {
-      p1jet: !!keyState['1'],
-      p1ufo: !!keyState['2'],
-      p1speed: !!keyState['3'],
-      p1x2: !!keyState['4'],
-      p1blitz: !!keyState['5'],
-      p1shield: !!keyState['6'],
-      p2jet: !!keyState['7'],
-      p2ufo: !!keyState['8'],
-      p2speed: !!keyState['9'],
-      p2x2: !!keyState['j'],
-      p2blitz: !!keyState['k'],
-      p2shield: !!keyState['l']
+      p1jet: false, p1ufo: false, p1speed: false, p1x2: false, p1blitz: false, p1shield: false,
+      p2jet: false, p2ufo: false, p2speed: false, p2x2: false, p2blitz: false, p2shield: false
     }
   };
 }
@@ -1518,6 +1643,14 @@ function maybeSendSnapshot() {
   socket.emit('online:state', { code: onlineState.code, snapshot: serializeTwoPlayerState() });
 }
 
+function maybeSendOnlineInput() {
+  if (!twoPlayer.online || !onlineSendInputEnabled || !socket || !onlineState.role || !onlineState.code) return;
+  const now = performance.now();
+  if (now - lastInputSent < 45) return;
+  lastInputSent = now;
+  socket.emit('online:input', { code: onlineState.code, role: onlineState.role, input: serializeInputState() });
+}
+
 function leaveOnlineLobbyAndReturn() {
   if (socket && onlineState.code) socket.emit('online:leave-lobby', { code: onlineState.code });
   onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
@@ -1526,6 +1659,8 @@ function leaveOnlineLobbyAndReturn() {
 
 function updateSinglePlayer() {
   if (!gameActive || pause || gameOver) return;
+
+  ensureSingleWorldObjects();
 
   if (intro) {
     player.x += 8;
@@ -1599,8 +1734,10 @@ function updateSinglePlayer() {
   }
 }
 
-function updateTwoPlayerPlayer(tpPlayer, stateForMove, stateForActions) {
+function updateTwoPlayerPlayer(tpPlayer, stateForMove) {
   if (!tpPlayer || !tpPlayer.alive) return;
+
+  ensureTwoPlayerWorldObjects(tpPlayer);
 
   const boosted = Date.now() < tpPlayer.blitzUntil ? tpPlayer.speed * 1.75 : tpPlayer.speed;
   const moveSpeed = Date.now() < tpPlayer.speedDebuffUntil ? boosted * 0.75 : boosted;
@@ -1675,8 +1812,21 @@ function updateTwoPlayer() {
 
   if (twoPlayer.online && !twoPlayer.host) return;
 
-  const p1Move = twoPlayer.online ? { up: !!remoteKeyState.host?.up, down: !!remoteKeyState.host?.down } : { up: !!keyState['w'], down: !!keyState['s'] };
-  const p2Move = twoPlayer.online ? { up: !!remoteKeyState.guest?.up, down: !!remoteKeyState.guest?.down } : { up: !!keyState['arrowup'], down: !!keyState['arrowdown'] };
+  let p1Move;
+  let p2Move;
+
+  if (!twoPlayer.online) {
+    p1Move = { up: !!keyState['w'], down: !!keyState['s'] };
+    p2Move = { up: !!keyState['arrowup'], down: !!keyState['arrowdown'] };
+  } else {
+    p1Move = twoPlayer.host
+      ? { up: !!keyState['w'], down: !!keyState['s'] }
+      : { up: !!remoteKeyState.host?.up, down: !!remoteKeyState.host?.down };
+
+    p2Move = twoPlayer.guest
+      ? { up: !!keyState['arrowup'], down: !!keyState['arrowdown'] }
+      : { up: !!remoteKeyState.guest?.up, down: !!remoteKeyState.guest?.down };
+  }
 
   updateTwoPlayerPlayer(twoPlayer.p1, p1Move);
   updateTwoPlayerPlayer(twoPlayer.p2, p2Move);
@@ -1684,8 +1834,10 @@ function updateTwoPlayer() {
   if (!twoPlayer.online) {
     processTwoPlayerActionsFromKeyState(keyState);
   } else {
-    const hostActions = remoteKeyState.host?.actions || {};
-    const guestActions = remoteKeyState.guest?.actions || {};
+    const localActions = serializeInputState().actions || {};
+    const hostActions = twoPlayer.host ? localActions : (remoteKeyState.host?.actions || {});
+    const guestActions = twoPlayer.host ? (remoteKeyState.guest?.actions || {}) : localActions;
+
     if (hostActions.p1jet) sendJetAttack(twoPlayer.p1, twoPlayer.p2);
     if (hostActions.p1ufo) sendUfoAttack(twoPlayer.p1, twoPlayer.p2);
     if (hostActions.p1speed) sendSpeedAttack(twoPlayer.p1, twoPlayer.p2);
@@ -1735,7 +1887,7 @@ function renderLocalSetup() {
     characters.forEach(ch => {
       const card = document.createElement('div');
       card.className = 'cardBox' + (localSetup.p1Char === ch.id ? ' selectedCard' : '');
-      card.innerHTML = `<div class="previewWrap"><img src="${ch.src}" class="characterPreview"></div><div class="smallText">${ch.name}</div>`;
+      card.innerHTML = `<div class="previewWrap"><img src="${getCharacterPreviewSrc(ch)}" class="characterPreview"></div><div class="smallText">${ch.name}</div>`;
       card.onclick = () => { localSetup.p1Char = ch.id; renderLocalSetup(); };
       grid.appendChild(card);
     });
@@ -1746,7 +1898,7 @@ function renderLocalSetup() {
     characters.forEach(ch => {
       const card = document.createElement('div');
       card.className = 'cardBox' + (localSetup.p2Char === ch.id ? ' selectedCard' : '');
-      card.innerHTML = `<div class="previewWrap"><img src="${ch.src}" class="characterPreview"></div><div class="smallText">${ch.name}</div>`;
+      card.innerHTML = `<div class="previewWrap"><img src="${getCharacterPreviewSrc(ch)}" class="characterPreview"></div><div class="smallText">${ch.name}</div>`;
       card.onclick = () => { localSetup.p2Char = ch.id; renderLocalSetup(); };
       grid.appendChild(card);
     });
@@ -1757,7 +1909,7 @@ function renderLocalSetup() {
     backgrounds.forEach(bg => {
       const card = document.createElement('div');
       card.className = 'cardBox' + (localSetup.bg === bg.id ? ' selectedCard' : '');
-      card.innerHTML = `<div class="previewWrap"><img src="${bg.src}" class="skinPreview"></div><div class="smallText">${bg.name}</div>`;
+      card.innerHTML = `<div class="previewWrap"><img src="${getBackgroundPreviewSrc(bg)}" class="skinPreview"></div><div class="smallText">${bg.name}</div>`;
       card.onclick = () => { localSetup.bg = bg.id; renderLocalSetup(); };
       grid.appendChild(card);
     });
@@ -1773,8 +1925,8 @@ function attachButtonSounds() {
 
 function resetAllData() {
   [
-    'highscore','coins','bgSelected','characterSelected','highestUnlockedLevel','menuVolume','gameVolume','keybind_up','keybind_down',
-    'keybind_pause','keybind_restart','sfxMuted','inv_x2','inv_shield','inv_blitz','inv_caseSpin1','inv_caseSpin2','inv_caseSpin3'
+    'highscore', 'coins', 'bgSelected', 'characterSelected', 'highestUnlockedLevel', 'menuVolume', 'gameVolume', 'keybind_up', 'keybind_down',
+    'keybind_pause', 'keybind_restart', 'sfxMuted', 'inv_x2', 'inv_shield', 'inv_blitz', 'inv_caseSpin1', 'inv_caseSpin2', 'inv_caseSpin3'
   ].forEach(k => localStorage.removeItem(k));
   backgrounds.forEach(bg => { if (bg.id !== '1') localStorage.removeItem('bg' + bg.id + 'Owned'); });
   characters.forEach(ch => { if (ch.id !== '1') localStorage.removeItem('char' + ch.id + 'Owned'); });
@@ -1841,37 +1993,50 @@ function bindUI() {
   document.getElementById('openJoinLobbyBtn').onclick = () => openOnly(document.getElementById('joinLobbyMenu'));
   document.getElementById('backCreateLobbyBtn').onclick = () => openOnly(document.getElementById('onlineMenu'));
   document.getElementById('backJoinLobbyBtn').onclick = () => openOnly(document.getElementById('onlineMenu'));
+
   document.getElementById('createLobbyConfirmBtn').onclick = () => {
     if (!socket) return showToast('Keine Serververbindung.');
     const name = document.getElementById('createLobbyNameInput').value.trim() || 'Spieler 1';
     socket.emit('online:create-lobby', { name });
   };
+
   document.getElementById('joinLobbyConfirmBtn').onclick = () => {
     if (!socket) return showToast('Keine Serververbindung.');
     const name = document.getElementById('joinLobbyNameInput').value.trim() || 'Spieler 2';
     const code = document.getElementById('joinLobbyCodeInput').value.trim().toUpperCase();
+    if (!code) return showToast('Bitte Code eingeben.');
     socket.emit('online:join-lobby', { name, code });
   };
+
   document.getElementById('onlineReadyBtn').onclick = () => {
     if (!socket || !onlineState.code) return;
     onlineState.ready = !onlineState.ready;
     socket.emit('online:set-ready', { code: onlineState.code, ready: onlineState.ready });
     document.getElementById('onlineReadyBtn').textContent = onlineState.ready ? 'Nicht bereit' : 'Bereit';
   };
+
   document.getElementById('onlineStartBtn').onclick = () => {
-    if (socket && onlineState.code) socket.emit('online:start', { code: onlineState.code });
+    if (!socket || !onlineState.code) return;
+    const lobby = onlineState.lobby;
+    if (!lobby) return showToast('Lobby nicht gefunden.');
+    if (!lobby.guestName) return showToast('Warte auf Spieler 2.');
+    if (!lobby.hostReady || !lobby.guestReady) return showToast('Beide Spieler müssen bereit sein.');
+    socket.emit('online:start', { code: onlineState.code });
   };
+
   document.getElementById('onlineLobbyBackBtn').onclick = () => {
     if (socket && onlineState.code) socket.emit('online:leave-lobby', { code: onlineState.code });
     openOnly(document.getElementById('onlineMenu'));
     onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
   };
+
   document.querySelectorAll('.difficultyBtn').forEach(btn => {
     btn.onclick = () => {
       difficultyFactor = parseFloat(btn.dataset.fac);
       startEndless();
     };
   });
+
   document.querySelectorAll('.levelBtn').forEach(btn => {
     btn.onclick = () => {
       const level = parseInt(btn.dataset.level, 10);
@@ -1879,16 +2044,19 @@ function bindUI() {
       else playLockSound();
     };
   });
+
   document.getElementById('localSetupBackBtn').onclick = () => {
     if (localSetupStep > 0) { localSetupStep--; renderLocalSetup(); }
     else openOnly(document.getElementById('twoPlayerChoiceMenu'));
   };
+
   document.getElementById('localSetupNextBtn').onclick = () => {
     if (localSetupStep === 0) localSetup.p1Name = document.getElementById('localName1Input').value.trim() || 'Spieler 1';
     else if (localSetupStep === 1) localSetup.p2Name = document.getElementById('localName2Input').value.trim() || 'Spieler 2';
     if (localSetupStep < 4) { localSetupStep++; renderLocalSetup(); }
     else startLocalTwoPlayer();
   };
+
   document.getElementById('resumeBtn').onclick = () => { pause = false; closeAllMenus(); resumeCurrentGameMusic(); };
   document.getElementById('pauseSettingsBtn').onclick = () => openOnly(document.getElementById('settingsMenu'));
   document.getElementById('pauseToMenuBtn').onclick = () => goToMainMenu();
@@ -1896,6 +2064,7 @@ function bindUI() {
   document.getElementById('singleMenuBtn').onclick = () => goToMainMenu();
   document.getElementById('nextLevelBtn').onclick = () => { if (currentLevel < 4) startClassicLevel(currentLevel + 1); else goToMainMenu(); };
   document.getElementById('levelCompleteMenuBtn').onclick = () => goToMainMenu();
+
   document.getElementById('twoPlayerRestartBtn').onclick = () => {
     if (twoPlayer.online) {
       openOnly(document.getElementById('onlineLobbyMenu'));
@@ -1903,10 +2072,12 @@ function bindUI() {
     }
     startLocalTwoPlayer();
   };
+
   document.getElementById('twoPlayerAdjustBtn').onclick = () => {
     if (twoPlayer.online) openOnly(document.getElementById('onlineLobbyMenu'));
     else { localSetupStep = 0; openOnly(document.getElementById('localSetupMenu')); renderLocalSetup(); }
   };
+
   document.getElementById('twoPlayerToMenuBtn').onclick = () => {
     if (twoPlayer.online) leaveOnlineLobbyAndReturn();
     else goToMainMenu();
@@ -1916,6 +2087,7 @@ function bindUI() {
     document.getElementById('adminCoinsInput').value = coinCounter;
     openOnly(document.getElementById('adminLoginMenu'));
   };
+
   document.getElementById('adminLoginBtn').onclick = () => {
     if (document.getElementById('adminCodeInput').value === 'Anes') {
       document.getElementById('adminCodeInput').value = '';
@@ -1925,6 +2097,7 @@ function bindUI() {
       openOnly(document.getElementById('adminMenu'));
     } else playLockSound();
   };
+
   document.getElementById('adminLoginBackBtn').onclick = () => openOnly(document.getElementById('startMenu'));
   document.getElementById('closeAdminMenuBtn').onclick = () => openOnly(document.getElementById('startMenu'));
   document.getElementById('adminGodMode').onchange = e => { adminGodMode = e.target.checked; };
@@ -1941,7 +2114,12 @@ function bindUI() {
   altGameMusic.volume = parseFloat(document.getElementById('gameVolume').value);
   twoPlayerMusic.volume = parseFloat(document.getElementById('gameVolume').value);
   document.getElementById('muteSfxToggle').checked = sfxMuted;
-  document.getElementById('menuVolume').oninput = e => { menuMusic.volume = parseFloat(e.target.value); localStorage.setItem('menuVolume', menuMusic.volume); };
+
+  document.getElementById('menuVolume').oninput = e => {
+    menuMusic.volume = parseFloat(e.target.value);
+    localStorage.setItem('menuVolume', menuMusic.volume);
+  };
+
   document.getElementById('gameVolume').oninput = e => {
     const v = parseFloat(e.target.value);
     gameMusic.volume = v;
@@ -1949,7 +2127,12 @@ function bindUI() {
     twoPlayerMusic.volume = v;
     localStorage.setItem('gameVolume', v);
   };
-  document.getElementById('muteSfxToggle').onchange = e => { sfxMuted = e.target.checked; localStorage.setItem('sfxMuted', sfxMuted ? 'true' : 'false'); };
+
+  document.getElementById('muteSfxToggle').onchange = e => {
+    sfxMuted = e.target.checked;
+    localStorage.setItem('sfxMuted', sfxMuted ? 'true' : 'false');
+  };
+
   document.getElementById('changeKeybindsBtn').onclick = () => document.getElementById('keybindPanel').classList.toggle('hidden');
   document.querySelectorAll('.keybindButton').forEach(btn => {
     btn.onclick = () => {
@@ -1957,6 +2140,7 @@ function bindUI() {
       btn.textContent = 'Taste drücken...';
     };
   });
+
   document.getElementById('resetDataBtn').onclick = () => resetAllData();
 }
 
@@ -1981,27 +2165,43 @@ function goToMainMenu() {
 
 function setupSocket() {
   if (!socket) return;
+
   socket.on('connect', () => { onlineState.connected = true; });
-  socket.on('disconnect', () => { onlineState.connected = false; showToast('Serververbindung getrennt.'); });
+
+  socket.on('disconnect', () => {
+    onlineState.connected = false;
+    showToast('Serververbindung getrennt.');
+  });
+
+  socket.on('connect_error', () => {
+    onlineState.connected = false;
+    showToast('Server nicht erreichbar.');
+  });
+
   socket.on('online:error', msg => showToast(msg));
   socket.on('online:lobby-created', ({ role, lobby }) => openOnlineLobby(role, lobby));
   socket.on('online:lobby-joined', ({ role, lobby }) => openOnlineLobby(role, lobby));
+
   socket.on('online:lobby-state', lobby => {
     if (onlineState.code && lobby.code !== onlineState.code) return;
     onlineState.code = lobby.code;
     applyLobbyChoices(lobby);
   });
+
   socket.on('online:game-start', lobby => {
     startOnlineTwoPlayer(lobby);
   });
+
   socket.on('online:state', snapshot => {
     if (twoPlayer.online && twoPlayer.guest) {
       applyTwoPlayerSnapshot(snapshot);
     }
   });
+
   socket.on('online:input', ({ role, input }) => {
     remoteKeyState[role] = input;
   });
+
   socket.on('online:lobby-left', () => {
     onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
     goToMainMenu();
@@ -2084,12 +2284,14 @@ function gameLoop() {
       if (bgX <= -canvas.width) bgX += canvas.width;
     }
   }
-  draw();
+
   updateSinglePlayer();
   updateTwoPlayer();
+  draw();
   updateSingleItemBar();
   updateSinglePowerText();
   maybeSendSnapshot();
+  maybeSendOnlineInput();
 }
 
 renderSkinsAndShop();
