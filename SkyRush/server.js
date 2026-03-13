@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,28 +19,6 @@ function randomCode() {
     code = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   } while (lobbies.has(code));
   return code;
-}
-
-function makeLobby(hostSocket, hostName) {
-  const code = randomCode();
-  const lobby = {
-    code,
-    hostId: hostSocket.id,
-    guestId: null,
-    hostName,
-    guestName: '',
-    hostReady: false,
-    guestReady: false,
-    hostChar: '1',
-    guestChar: '2',
-    bg: '1',
-    started: false
-  };
-  lobbies.set(code, lobby);
-  hostSocket.join(code);
-  hostSocket.data.lobbyCode = code;
-  hostSocket.data.role = 'host';
-  return lobby;
 }
 
 function lobbyPayload(lobby) {
@@ -63,10 +41,50 @@ function emitLobby(code) {
   io.to(code).emit('online:lobby-state', lobbyPayload(lobby));
 }
 
-function removeLobbyIfEmpty(code) {
-  const lobby = lobbies.get(code);
-  if (!lobby) return;
-  if (!lobby.hostId && !lobby.guestId) lobbies.delete(code);
+function clearSocketLobbyData(socket) {
+  socket.data.lobbyCode = null;
+  socket.data.role = null;
+}
+
+function closeLobby(code, reason = '') {
+  const room = io.sockets.adapter.rooms.get(code);
+  if (reason) {
+    io.to(code).emit('online:error', reason);
+  }
+  io.to(code).emit('online:force-menu');
+
+  if (room) {
+    for (const socketId of room) {
+      const roomSocket = io.sockets.sockets.get(socketId);
+      if (!roomSocket) continue;
+      roomSocket.leave(code);
+      clearSocketLobbyData(roomSocket);
+    }
+  }
+
+  lobbies.delete(code);
+}
+
+function makeLobby(hostSocket, hostName) {
+  const code = randomCode();
+  const lobby = {
+    code,
+    hostId: hostSocket.id,
+    guestId: null,
+    hostName,
+    guestName: '',
+    hostReady: false,
+    guestReady: false,
+    hostChar: '1',
+    guestChar: '2',
+    bg: '1',
+    started: false
+  };
+  lobbies.set(code, lobby);
+  hostSocket.join(code);
+  hostSocket.data.lobbyCode = code;
+  hostSocket.data.role = 'host';
+  return lobby;
 }
 
 io.on('connection', socket => {
@@ -104,60 +122,72 @@ io.on('connection', socket => {
   });
 
   socket.on('online:update-choice', ({ code, role, char, bg }) => {
-    const lobby = lobbies.get(code);
+    const lobby = lobbies.get(String(code || '').toUpperCase().trim());
     if (!lobby) return;
+
     if (role === 'host' && socket.id === lobby.hostId) {
       if (char) lobby.hostChar = String(char);
       if (bg) lobby.bg = String(bg);
     }
+
     if (role === 'guest' && socket.id === lobby.guestId) {
       if (char) lobby.guestChar = String(char);
     }
-    emitLobby(code);
+
+    emitLobby(lobby.code);
   });
 
   socket.on('online:set-ready', ({ code, ready }) => {
-    const lobby = lobbies.get(code);
+    const lobby = lobbies.get(String(code || '').toUpperCase().trim());
     if (!lobby) return;
+
     if (socket.id === lobby.hostId) lobby.hostReady = !!ready;
     if (socket.id === lobby.guestId) lobby.guestReady = !!ready;
-    emitLobby(code);
+
+    emitLobby(lobby.code);
   });
 
   socket.on('online:start', ({ code }) => {
-    const lobby = lobbies.get(code);
+    const lobby = lobbies.get(String(code || '').toUpperCase().trim());
     if (!lobby || socket.id !== lobby.hostId) return;
+
     if (!lobby.guestId) {
       socket.emit('online:error', 'Es ist noch kein zweiter Spieler in der Lobby.');
       return;
     }
+
     if (!lobby.hostReady || !lobby.guestReady) {
       socket.emit('online:error', 'Beide Spieler müssen bereit sein.');
       return;
     }
+
     lobby.started = true;
-    io.to(code).emit('online:start-game', lobbyPayload(lobby));
-    emitLobby(code);
+    const payload = lobbyPayload(lobby);
+    io.to(lobby.code).emit('online:game-start', payload);
+    io.to(lobby.code).emit('online:start-game', payload);
+    emitLobby(lobby.code);
   });
 
   socket.on('online:leave-lobby', ({ code }) => {
-    const lobby = lobbies.get(code);
-    if (!lobby) return;
-    if (socket.id === lobby.hostId) {
-      io.to(code).emit('online:error', 'Host hat die Lobby verlassen.');
-      io.to(code).emit('online:force-menu');
-      lobbies.delete(code);
+    const lobby = lobbies.get(String(code || '').toUpperCase().trim());
+    if (!lobby) {
+      clearSocketLobbyData(socket);
       return;
     }
+
+    if (socket.id === lobby.hostId) {
+      closeLobby(lobby.code, 'Host hat die Lobby verlassen.');
+      return;
+    }
+
     if (socket.id === lobby.guestId) {
       lobby.guestId = null;
       lobby.guestName = '';
       lobby.guestReady = false;
       lobby.started = false;
-      socket.leave(code);
-      socket.data.lobbyCode = null;
-      socket.data.role = null;
-      emitLobby(code);
+      socket.leave(lobby.code);
+      clearSocketLobbyData(socket);
+      emitLobby(lobby.code);
     }
   });
 
@@ -170,7 +200,8 @@ io.on('connection', socket => {
   socket.on('online:state', payload => {
     const code = socket.data.lobbyCode;
     if (!code) return;
-    socket.to(code).emit('online:state', payload);
+    const snapshot = payload && payload.snapshot ? payload.snapshot : payload;
+    socket.to(code).emit('online:state', snapshot);
   });
 
   socket.on('online:match-over', payload => {
@@ -185,13 +216,15 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     const code = socket.data.lobbyCode;
     if (!code) return;
+
     const lobby = lobbies.get(code);
-    if (!lobby) return;
+    if (!lobby) {
+      clearSocketLobbyData(socket);
+      return;
+    }
 
     if (socket.id === lobby.hostId) {
-      io.to(code).emit('online:error', 'Host hat die Verbindung verloren.');
-      io.to(code).emit('online:force-menu');
-      lobbies.delete(code);
+      closeLobby(code, 'Host hat die Verbindung verloren.');
       return;
     }
 
@@ -200,8 +233,8 @@ io.on('connection', socket => {
       lobby.guestName = '';
       lobby.guestReady = false;
       lobby.started = false;
+      clearSocketLobbyData(socket);
       emitLobby(code);
-      removeLobbyIfEmpty(code);
     }
   });
 });
