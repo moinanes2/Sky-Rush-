@@ -1623,12 +1623,13 @@ function serializeTwoPlayerState() {
 
 function applyTwoPlayerSnapshot(snapshot) {
   if (!snapshot) return;
-  bgX = snapshot.bgX || 0;
-  twoPlayer.background = snapshot.background || '1';
-  twoPlayer.p1 = snapshot.p1;
-  twoPlayer.p2 = snapshot.p2;
-  twoPlayer.over = !!snapshot.over;
-  twoPlayer.winner = snapshot.winner || '';
+  const realSnapshot = snapshot.snapshot || snapshot;
+  bgX = realSnapshot.bgX || 0;
+  twoPlayer.background = realSnapshot.background || '1';
+  twoPlayer.p1 = realSnapshot.p1;
+  twoPlayer.p2 = realSnapshot.p2;
+  twoPlayer.over = !!realSnapshot.over;
+  twoPlayer.winner = realSnapshot.winner || '';
   if (twoPlayer.over) {
     document.getElementById('twoPlayerWinnerText').textContent = twoPlayer.winner || 'Spiel vorbei';
     openOnly(document.getElementById('twoPlayerGameOverMenu'));
@@ -2018,9 +2019,10 @@ function bindUI() {
   document.getElementById('onlineStartBtn').onclick = () => {
     if (!socket || !onlineState.code) return;
     const lobby = onlineState.lobby;
-    if (!lobby) return showToast('Lobby nicht gefunden.');
-    if (!lobby.guestName) return showToast('Warte auf Spieler 2.');
-    if (!lobby.hostReady || !lobby.guestReady) return showToast('Beide Spieler müssen bereit sein.');
+    if (lobby) {
+      if (!lobby.guestName) return showToast('Warte auf Spieler 2.');
+      if (!lobby.hostReady || !lobby.guestReady) return showToast('Beide Spieler müssen bereit sein.');
+    }
     socket.emit('online:start', { code: onlineState.code });
   };
 
@@ -2192,6 +2194,10 @@ function setupSocket() {
     startOnlineTwoPlayer(lobby);
   });
 
+  socket.on('online:start-game', lobby => {
+    startOnlineTwoPlayer(lobby);
+  });
+
   socket.on('online:state', snapshot => {
     if (twoPlayer.online && twoPlayer.guest) {
       applyTwoPlayerSnapshot(snapshot);
@@ -2200,6 +2206,12 @@ function setupSocket() {
 
   socket.on('online:input', ({ role, input }) => {
     remoteKeyState[role] = input;
+  });
+
+  socket.on('online:force-menu', () => {
+    onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
+    showToast('Online-Lobby wurde geschlossen.');
+    goToMainMenu();
   });
 
   socket.on('online:lobby-left', () => {
