@@ -2200,7 +2200,8 @@ function setupSocket() {
 
   socket.on('online:state', snapshot => {
     if (twoPlayer.online && twoPlayer.guest) {
-      applyTwoPlayerSnapshot(snapshot);
+      const actualSnapshot = snapshot && snapshot.snapshot ? snapshot.snapshot : snapshot;
+      applyTwoPlayerSnapshot(actualSnapshot);
     }
   });
 
