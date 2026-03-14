@@ -148,8 +148,6 @@ const statusToast = document.getElementById('statusToast');
 const singleItemBar = document.getElementById('singleItemBar');
 const hudTop = document.getElementById('hudTop');
 const hudBottom = document.getElementById('hudBottom');
-const youTop = document.getElementById('youTop');
-const youBottom = document.getElementById('youBottom');
 
 const levelTargets = { 1: 150, 2: 200, 3: 250, 4: 500 };
 const wolkenBilder = ['wolke1', 'wolke2', 'wolke3', 'wolke4', 'wolke5', 'wolke6'];
@@ -408,21 +406,6 @@ function refreshKeybindButtons() {
   document.getElementById('bindDown').textContent = formatKeyName(keybinds.down);
   document.getElementById('bindPause').textContent = formatKeyName(keybinds.pause);
   document.getElementById('bindRestart').textContent = formatKeyName(keybinds.restart);
-}
-
-function updateYouMarkers() {
-  if (!youTop || !youBottom) return;
-
-  youTop.style.display = 'none';
-  youBottom.style.display = 'none';
-
-  if (!twoPlayer.active || !twoPlayer.online) return;
-
-  if (onlineState.role === 'host') {
-    youTop.style.display = 'block';
-  } else if (onlineState.role === 'guest') {
-    youBottom.style.display = 'block';
-  }
 }
 
 function getBackgroundImageById(id) {
@@ -1277,7 +1260,6 @@ function startClassicLevel(level) {
   twoPlayer.active = false;
   twoPlayer.online = false;
   hideTwoPlayerHelp();
-  updateYouMarkers();
   spawnSingleEnemies();
   coins.push({ x: canvas.width * 0.72, y: canvas.height * 0.42, speed: 4.1 });
   closeAllMenus();
@@ -1292,7 +1274,6 @@ function startEndless() {
   twoPlayer.active = false;
   twoPlayer.online = false;
   hideTwoPlayerHelp();
-  updateYouMarkers();
   spawnSingleEnemies();
   coins.push({ x: canvas.width * 0.72, y: canvas.height * 0.42, speed: 4.1 });
   closeAllMenus();
@@ -1316,7 +1297,6 @@ function startLocalTwoPlayer() {
   twoPlayer.p1 = createTwoPlayerPlayer(localSetup.p1Name, { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' }, 0, canvas.height / 2 - 3, localSetup.p1Char);
   twoPlayer.p2 = createTwoPlayerPlayer(localSetup.p2Name, { up: 'arrowup', down: 'arrowdown', jet: '7', ufo: '8', speed: '9', self2x: 'j', selfBlitz: 'k', selfShield: 'l' }, canvas.height / 2 + 3, canvas.height, localSetup.p2Char);
   updateOnlineHelpText();
-  updateYouMarkers();
   startTwoPlayerMusic();
 }
 
@@ -1415,7 +1395,6 @@ function startOnlineTwoPlayer(lobby) {
 
   onlineSendInputEnabled = true;
   updateOnlineHelpText();
-  updateYouMarkers();
   startTwoPlayerMusic();
 }
 
@@ -2314,7 +2293,6 @@ function goToMainMenu() {
   onlineSendInputEnabled = false;
   lastOnlineMatchOverSent = false;
   hideTwoPlayerHelp();
-  updateYouMarkers();
   resetSinglePlayerState();
   openOnly(document.getElementById('startMenu'));
   startMenuMusic();
@@ -2335,7 +2313,6 @@ function returnToOnlineLobbyAfterMatch(serverLobby = null) {
 
   remoteKeyState = {};
   hideTwoPlayerHelp();
-  updateYouMarkers();
 
   if (serverLobby) {
     onlineState.lobby = serverLobby;
@@ -2494,7 +2471,6 @@ function gameLoop() {
   updateSinglePowerText();
   maybeSendSnapshot();
   maybeSendOnlineInput();
-  updateYouMarkers();
 }
 
 renderSkinsAndShop();
@@ -2506,5 +2482,4 @@ bindUI();
 attachButtonSounds();
 setupSocket();
 openOnly(document.getElementById('startMenu'));
-updateYouMarkers();
 setInterval(gameLoop, 1000 / 60);
