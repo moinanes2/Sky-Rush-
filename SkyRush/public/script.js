@@ -67,6 +67,7 @@ function loadImageWithFallback(candidates) {
       img.dataset.failed = 'true';
       return;
     }
+
     const src = tries[index++];
     img.onload = () => {
       img.dataset.loadedOk = 'true';
@@ -147,6 +148,8 @@ const statusToast = document.getElementById('statusToast');
 const singleItemBar = document.getElementById('singleItemBar');
 const hudTop = document.getElementById('hudTop');
 const hudBottom = document.getElementById('hudBottom');
+const youTop = document.getElementById('youTop');
+const youBottom = document.getElementById('youBottom');
 
 const levelTargets = { 1: 150, 2: 200, 3: 250, 4: 500 };
 const wolkenBilder = ['wolke1', 'wolke2', 'wolke3', 'wolke4', 'wolke5', 'wolke6'];
@@ -167,6 +170,7 @@ let remoteKeyState = {};
 let onlineSendInputEnabled = false;
 let lastSnapshotSent = 0;
 let lastInputSent = 0;
+let lastOnlineMatchOverSent = false;
 
 let adminGodMode = false;
 let adminDoubleScore = false;
@@ -406,6 +410,21 @@ function refreshKeybindButtons() {
   document.getElementById('bindRestart').textContent = formatKeyName(keybinds.restart);
 }
 
+function updateYouMarkers() {
+  if (!youTop || !youBottom) return;
+
+  youTop.style.display = 'none';
+  youBottom.style.display = 'none';
+
+  if (!twoPlayer.active || !twoPlayer.online) return;
+
+  if (onlineState.role === 'host') {
+    youTop.style.display = 'block';
+  } else if (onlineState.role === 'guest') {
+    youBottom.style.display = 'block';
+  }
+}
+
 function getBackgroundImageById(id) {
   return images['bg' + id] || images.bg1;
 }
@@ -509,14 +528,17 @@ function createVariedEnemy(areaTop, areaBottom, baseX, forcedType = null) {
   const scale = 0.68 + Math.random() * 0.14;
   const speedMul = 0.92 + Math.random() * 0.22;
   let baseW = 75, baseH = 75, hitW = 62, hitH = 48;
+
   if (type === 'ufo') {
     baseW = 120;
     baseH = 75;
     hitW = 100;
     hitH = 48;
   }
+
   const w = Math.round(baseW * scale);
   const h = Math.round(baseH * scale);
+
   return {
     x: baseX,
     y: areaTop + Math.random() * Math.max(20, areaBottom - areaTop - h),
@@ -568,6 +590,7 @@ function createTwoPlayerPlayer(name, controls, areaTop, areaBottom, sprite) {
     attackMessageUntil: 0,
     cooldowns: { jet: 0, ufo: 0, speed: 0, self2x: 0, selfBlitz: 0, selfShield: 0 }
   };
+
   p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 20, 'jet'));
   p.enemies.push(createVariedEnemy(areaTop, areaBottom, canvas.width + 160, 'ufo'));
   p.coinItems.push({ x: canvas.width * 0.62, y: areaTop + 35 + Math.random() * Math.max(20, areaBottom - areaTop - 85), w: 40, h: 40, speed: 3.8 });
@@ -689,6 +712,7 @@ function handleSingleHit() {
     player.invincibleUntil = Date.now() + 2000;
     return;
   }
+
   gameOver = true;
   gameActive = false;
   stopAllGameMusic();
@@ -1124,6 +1148,7 @@ function drawTwoPlayerEffectCards(tpPlayer) {
 }
 
 function drawSinglePlayer() {
+  scoreBoard.style.display = 'block';
   drawScrollingBackground(0, canvas.height);
 
   clouds.forEach(c => drawImageOrFallback(images[c.img], c.x, c.y, 96, 56, 'cloud'));
@@ -1199,12 +1224,12 @@ function drawTwoPlayerHalf(tpPlayer) {
 
 function drawTwoPlayer() {
   if (!twoPlayer.p1 || !twoPlayer.p2) return;
+  scoreBoard.style.display = 'none';
   drawTwoPlayerHalf(twoPlayer.p1);
   drawTwoPlayerHalf(twoPlayer.p2);
   ctx.fillStyle = '#222';
   ctx.fillRect(0, canvas.height / 2 - 2, canvas.width, 4);
   powerDisplay.textContent = '';
-  scoreBoard.innerHTML = 'Two-Player Mode';
 }
 
 function draw() {
@@ -1252,6 +1277,7 @@ function startClassicLevel(level) {
   twoPlayer.active = false;
   twoPlayer.online = false;
   hideTwoPlayerHelp();
+  updateYouMarkers();
   spawnSingleEnemies();
   coins.push({ x: canvas.width * 0.72, y: canvas.height * 0.42, speed: 4.1 });
   closeAllMenus();
@@ -1266,6 +1292,7 @@ function startEndless() {
   twoPlayer.active = false;
   twoPlayer.online = false;
   hideTwoPlayerHelp();
+  updateYouMarkers();
   spawnSingleEnemies();
   coins.push({ x: canvas.width * 0.72, y: canvas.height * 0.42, speed: 4.1 });
   closeAllMenus();
@@ -1289,6 +1316,7 @@ function startLocalTwoPlayer() {
   twoPlayer.p1 = createTwoPlayerPlayer(localSetup.p1Name, { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' }, 0, canvas.height / 2 - 3, localSetup.p1Char);
   twoPlayer.p2 = createTwoPlayerPlayer(localSetup.p2Name, { up: 'arrowup', down: 'arrowdown', jet: '7', ufo: '8', speed: '9', self2x: 'j', selfBlitz: 'k', selfShield: 'l' }, canvas.height / 2 + 3, canvas.height, localSetup.p2Char);
   updateOnlineHelpText();
+  updateYouMarkers();
   startTwoPlayerMusic();
 }
 
@@ -1362,6 +1390,7 @@ function startOnlineTwoPlayer(lobby) {
   pause = false;
   bgX = 0;
   remoteKeyState = {};
+  lastOnlineMatchOverSent = false;
 
   twoPlayer.active = true;
   twoPlayer.over = false;
@@ -1386,6 +1415,7 @@ function startOnlineTwoPlayer(lobby) {
 
   onlineSendInputEnabled = true;
   updateOnlineHelpText();
+  updateYouMarkers();
   startTwoPlayerMusic();
 }
 
@@ -1958,7 +1988,8 @@ function updateTwoPlayer() {
     stopAllGameMusic();
 
     if (twoPlayer.online) {
-      if (socket && onlineState.code) {
+      if (!lastOnlineMatchOverSent && socket && onlineState.code) {
+        lastOnlineMatchOverSent = true;
         socket.emit('online:match-over', {
           code: onlineState.code,
           winner: twoPlayer.winner
@@ -2281,7 +2312,9 @@ function goToMainMenu() {
   twoPlayer.p2 = null;
   remoteKeyState = {};
   onlineSendInputEnabled = false;
+  lastOnlineMatchOverSent = false;
   hideTwoPlayerHelp();
+  updateYouMarkers();
   resetSinglePlayerState();
   openOnly(document.getElementById('startMenu'));
   startMenuMusic();
@@ -2293,6 +2326,7 @@ function returnToOnlineLobbyAfterMatch(serverLobby = null) {
   pause = false;
   gameActive = false;
   gameOver = false;
+  lastOnlineMatchOverSent = false;
 
   twoPlayer.active = false;
   twoPlayer.over = false;
@@ -2301,6 +2335,7 @@ function returnToOnlineLobbyAfterMatch(serverLobby = null) {
 
   remoteKeyState = {};
   hideTwoPlayerHelp();
+  updateYouMarkers();
 
   if (serverLobby) {
     onlineState.lobby = serverLobby;
@@ -2459,6 +2494,7 @@ function gameLoop() {
   updateSinglePowerText();
   maybeSendSnapshot();
   maybeSendOnlineInput();
+  updateYouMarkers();
 }
 
 renderSkinsAndShop();
@@ -2470,4 +2506,5 @@ bindUI();
 attachButtonSounds();
 setupSocket();
 openOnly(document.getElementById('startMenu'));
+updateYouMarkers();
 setInterval(gameLoop, 1000 / 60);
