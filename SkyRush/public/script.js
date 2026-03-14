@@ -12,7 +12,7 @@ const backgrounds = [
 
 const characters = [
   { id: '1', name: 'Standard', assetKey: 'char1', price: 0 },
-  { id: '2', name: 'Tiger', assetKey: 'char2', price: 50 },
+  { id: '2', name: 'Tiger classic', assetKey: 'char2', price: 50 },
   { id: '3', name: 'Hund', assetKey: 'char3', price: 100 },
   { id: '4', name: 'Neon Tiger', assetKey: 'char4', price: 200 }
 ];
