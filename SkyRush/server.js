@@ -198,7 +198,7 @@ io.on('connection', socket => {
   });
 
   socket.on('online:state', payload => {
-    const code = socket.data.lobbyCode;
+    const code = socket.data.lobbyCode || (payload && payload.code);
     if (!code) return;
     const snapshot = payload && payload.snapshot ? payload.snapshot : payload;
     socket.to(code).emit('online:state', snapshot);
