@@ -4,477 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SkyRush</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(to bottom, #87ceeb, #4fa8ff);
-      color: white;
-    }
-
-    #gameWrap {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    #Canvas01 {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-      background: #87ceeb;
-    }
-
-    #hudWrap {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      z-index: 20;
-      flex-wrap: wrap;
-      max-width: calc(100vw - 24px);
-    }
-
-    #scoreBoard,
-    #powerDisplay {
-      background: rgba(0, 0, 0, 0.45);
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: 700;
-      backdrop-filter: blur(4px);
-    }
-
-    #madeByAnes {
-      position: absolute;
-      right: 16px;
-      top: 16px;
-      z-index: 22;
-      color: rgba(200, 200, 200, 0.7);
-      font-size: 18px;
-      font-weight: 700;
-      pointer-events: none;
-      user-select: none;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.35);
-    }
-
-    #singleItemBar {
-      position: absolute;
-      left: 50%;
-      bottom: 18px;
-      transform: translateX(-50%);
-      z-index: 20;
-      display: none;
-    }
-
-    .itemHotbar {
-      display: flex;
-      gap: 12px;
-      background: rgba(0, 0, 0, 0.45);
-      padding: 10px 14px;
-      border-radius: 16px;
-      backdrop-filter: blur(4px);
-    }
-
-    .itemHotbarEntry {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 105px;
-      font-weight: 700;
-    }
-
-    .itemHotbarEntry img {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.15);
-      padding: 3px;
-    }
-
-    #hudTop,
-    #hudBottom {
-      position: absolute;
-      right: 14px;
-      width: 320px;
-      z-index: 20;
-      background: rgba(0, 0, 0, 0.45);
-      border-radius: 16px;
-      padding: 12px;
-      backdrop-filter: blur(4px);
-      font-size: 14px;
-    }
-
-    #hudTop {
-      top: 70px;
-    }
-
-    #hudBottom {
-      bottom: 12px;
-    }
-
-    .attackLine {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .attackLine img {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.12);
-      padding: 2px;
-    }
-
-    .priceRed {
-      color: #ff6b6b;
-      font-weight: 900;
-    }
-
-    #statusToast {
-      position: absolute;
-      top: 85px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 50;
-      display: none;
-      background: rgba(0,0,0,0.75);
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-weight: 700;
-      box-shadow: 0 8px 22px rgba(0,0,0,0.25);
-    }
-
-    #youTop,
-    #youBottom {
-      position: absolute;
-      left: 14px;
-      z-index: 23;
-      background: rgba(255, 215, 0, 0.92);
-      color: #111;
-      padding: 8px 14px;
-      border-radius: 14px;
-      font-size: 18px;
-      font-weight: 900;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.22);
-      display: none;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    #youTop {
-      top: 58px;
-    }
-
-    #youBottom {
-      top: calc(50% + 18px);
-    }
-
-    .menu {
-      position: absolute;
-      inset: 0;
-      z-index: 30;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.38);
-      padding: 20px;
-    }
-
-    .menuCard {
-      width: min(1050px, 96vw);
-      max-height: 92vh;
-      overflow: auto;
-      background: rgba(20, 30, 52, 0.92);
-      border: 2px solid rgba(255,255,255,0.15);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
-    }
-
-    .menuTitle {
-      margin: 0 0 18px 0;
-      text-align: center;
-      font-size: clamp(28px, 4vw, 54px);
-      font-weight: 900;
-      letter-spacing: 1px;
-    }
-
-    .subTitle {
-      margin: 0 0 14px 0;
-      font-size: 24px;
-      font-weight: 800;
-    }
-
-    .rowButtons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      margin: 12px 0;
-    }
-
-    button,
-    input,
-    select {
-      font-family: inherit;
-    }
-
-    .mainBtn,
-    .tightBtn,
-    .smallBtn {
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      font-weight: 800;
-      transition: transform 0.12s ease, opacity 0.12s ease;
-    }
-
-    .mainBtn:hover,
-    .tightBtn:hover,
-    .smallBtn:hover {
-      transform: translateY(-1px);
-    }
-
-    .mainBtn:disabled,
-    .tightBtn:disabled,
-    .smallBtn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .mainBtn {
-      padding: 14px 22px;
-      font-size: 18px;
-      background: linear-gradient(to bottom, #62c7ff, #1b84ff);
-      color: white;
-      min-width: 180px;
-    }
-
-    .tightBtn {
-      padding: 10px 16px;
-      font-size: 15px;
-      background: linear-gradient(to bottom, #71d47f, #2fa84d);
-      color: white;
-    }
-
-    .smallBtn {
-      padding: 8px 14px;
-      font-size: 14px;
-      background: linear-gradient(to bottom, #ffc857, #ff9d00);
-      color: #1c1c1c;
-    }
-
-    .dangerBtn {
-      background: linear-gradient(to bottom, #ff8f8f, #e84b4b) !important;
-      color: white !important;
-    }
-
-    .backBtn {
-      background: linear-gradient(to bottom, #d2d9e5, #97a6bb) !important;
-      color: #162334 !important;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .grid2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-    }
-
-    .cardBox {
-      background: rgba(255,255,255,0.08);
-      border: 2px solid rgba(255,255,255,0.1);
-      border-radius: 18px;
-      padding: 14px;
-      text-align: center;
-      position: relative;
-      min-height: 210px;
-    }
-
-    .selectedCard {
-      border-color: #ffe066;
-      box-shadow: 0 0 0 3px rgba(255,224,102,0.2);
-    }
-
-    .previewWrap {
-      position: relative;
-      width: 100%;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 10px;
-    }
-
-    .skinPreview,
-    .characterPreview,
-    .casePreview {
-      width: 100%;
-      max-width: 220px;
-      height: 120px;
-      object-fit: contain;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.08);
-    }
-
-    .characterPreview {
-      max-width: 140px;
-    }
-
-    .casePreview {
-      max-width: 150px;
-    }
-
-    .lockOverlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 42px;
-      background: rgba(0,0,0,0.35);
-      border-radius: 14px;
-    }
-
-    .equippedTag {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(46, 204, 113, 0.95);
-      color: white;
-      padding: 5px 8px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .smallText {
-      font-size: 15px;
-      line-height: 1.4;
-      margin-bottom: 10px;
-      color: #eef4ff;
-    }
-
-    .sectionSpacer {
-      height: 12px;
-    }
-
-    .settingsRow {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin: 12px 0;
-      background: rgba(255,255,255,0.06);
-      padding: 12px;
-      border-radius: 14px;
-    }
-
-    .settingsRow label {
-      font-weight: 700;
-      min-width: 160px;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: min(360px, 100%);
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: none;
-      outline: none;
-      font-size: 16px;
-    }
-
-    input[type="range"] {
-      width: min(280px, 100%);
-    }
-
-    .stepText {
-      text-align: center;
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 14px;
-    }
-
-    #rouletteWindow {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin: 18px 0;
-      flex-wrap: wrap;
-    }
-
-    .rouletteCard {
-      width: 130px;
-      min-height: 132px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.08);
-      border: 2px solid rgba(255,255,255,0.15);
-      padding: 10px;
-      text-align: center;
-      font-weight: 700;
-    }
-
-    .rouletteCard img {
-      width: 64px;
-      height: 64px;
-      object-fit: contain;
-      margin-bottom: 8px;
-    }
-
-    .rouletteCenter {
-      border-color: #ffe066;
-      box-shadow: 0 0 0 3px rgba(255,224,102,0.25);
-      transform: scale(1.04);
-    }
-
-    .centerText {
-      text-align: center;
-    }
-
-    .adminBox {
-      display: grid;
-      gap: 12px;
-    }
-
-    .levelLocked {
-      opacity: 0.6;
-    }
-
-    @media (max-width: 900px) {
-      #hudTop,
-      #hudBottom {
-        width: 260px;
-        font-size: 12px;
-      }
-
-      .menuCard {
-        padding: 18px;
-      }
-
-      .mainBtn {
-        min-width: 150px;
-        font-size: 16px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div id="gameWrap">
@@ -497,7 +27,6 @@
 
     <div id="statusToast"></div>
 
-    <!-- START MENU -->
     <div id="startMenu" class="menu">
       <div class="menuCard">
         <h1 class="menuTitle">SkyRush</h1>
@@ -513,7 +42,6 @@
       </div>
     </div>
 
-    <!-- MODE MENU -->
     <div id="modeMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Modus wählen</h2>
@@ -528,7 +56,6 @@
       </div>
     </div>
 
-    <!-- DIFFICULTY MENU -->
     <div id="difficultyMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Schwierigkeit</h2>
@@ -543,7 +70,6 @@
       </div>
     </div>
 
-    <!-- CLASSIC MENU -->
     <div id="classicMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Classic Level</h2>
@@ -559,7 +85,6 @@
       </div>
     </div>
 
-    <!-- TWO PLAYER CHOICE -->
     <div id="twoPlayerChoiceMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Two Player</h2>
@@ -573,7 +98,6 @@
       </div>
     </div>
 
-    <!-- LOCAL SETUP -->
     <div id="localSetupMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Local Setup</h2>
@@ -585,7 +109,6 @@
       </div>
     </div>
 
-    <!-- ONLINE MENU -->
     <div id="onlineMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Online Lobby</h2>
@@ -599,7 +122,6 @@
       </div>
     </div>
 
-    <!-- CREATE LOBBY -->
     <div id="createLobbyMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Lobby erstellen</h2>
@@ -613,7 +135,6 @@
       </div>
     </div>
 
-    <!-- JOIN LOBBY -->
     <div id="joinLobbyMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Lobby beitreten</h2>
@@ -628,7 +149,6 @@
       </div>
     </div>
 
-    <!-- ONLINE LOBBY -->
     <div id="onlineLobbyMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Online Lobby</h2>
@@ -668,7 +188,6 @@
       </div>
     </div>
 
-    <!-- SKINS MENU -->
     <div id="skinsMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Skins</h2>
@@ -687,7 +206,6 @@
       </div>
     </div>
 
-    <!-- SHOP MENU -->
     <div id="shopMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Shop</h2>
@@ -706,7 +224,6 @@
       </div>
     </div>
 
-    <!-- CASES MENU -->
     <div id="casesMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Kisten</h2>
@@ -725,7 +242,6 @@
       </div>
     </div>
 
-    <!-- ITEMS MENU -->
     <div id="itemsMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Items</h2>
@@ -741,7 +257,6 @@
       </div>
     </div>
 
-    <!-- SETTINGS MENU -->
     <div id="settingsMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Settings</h2>
@@ -792,7 +307,6 @@
       </div>
     </div>
 
-    <!-- ADMIN LOGIN -->
     <div id="adminLoginMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Admin Login</h2>
@@ -806,7 +320,6 @@
       </div>
     </div>
 
-    <!-- ADMIN MENU -->
     <div id="adminMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Admin</h2>
@@ -834,7 +347,6 @@
       </div>
     </div>
 
-    <!-- PAUSE MENU -->
     <div id="pauseMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Pause</h2>
@@ -846,7 +358,6 @@
       </div>
     </div>
 
-    <!-- SINGLE GAME OVER -->
     <div id="singleGameOverMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Game Over</h2>
@@ -858,7 +369,6 @@
       </div>
     </div>
 
-    <!-- LEVEL COMPLETE -->
     <div id="levelCompleteMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Level geschafft!</h2>
@@ -873,7 +383,6 @@
       </div>
     </div>
 
-    <!-- TWO PLAYER GAME OVER -->
     <div id="twoPlayerGameOverMenu" class="menu hidden">
       <div class="menuCard">
         <h2 class="menuTitle">Two Player Ende</h2>
