@@ -36,6 +36,7 @@ function makeLobby(hostSocket, hostName) {
     bg: '1',
     started: false
   };
+
   lobbies.set(code, lobby);
   hostSocket.join(code);
   hostSocket.data.lobbyCode = code;
