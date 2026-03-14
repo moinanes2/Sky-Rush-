@@ -4,23 +4,23 @@ const canvas = document.getElementById('Canvas01');
 const ctx = canvas.getContext('2d');
 
 const backgrounds = [
-  { id: '1', name: 'Standard', assetKey: 'bg1', price: 0 },
-  { id: '2', name: 'Nacht', assetKey: 'bg2', price: 100 },
-  { id: '3', name: 'Weltraum', assetKey: 'bg3', price: 200 },
-  { id: '4', name: 'Wald', assetKey: 'bg4', price: 300 }
+  { id: '1', name: 'Standard', src: 'Hintergrund.jpg', assetKey: 'bg1', price: 0 },
+  { id: '2', name: 'Nacht', src: 'Hintergrund Nacht.png', assetKey: 'bg2', price: 100 },
+  { id: '3', name: 'Weltraum', src: 'Hintergrund Weltraum.jpg', assetKey: 'bg3', price: 200 },
+  { id: '4', name: 'Wald', src: 'Hintergrund Wald.png', assetKey: 'bg4', price: 300 }
 ];
 
 const characters = [
-  { id: '1', name: 'Standard', assetKey: 'char1', price: 0 },
-  { id: '2', name: 'Tiger Classic', assetKey: 'char2', price: 50 },
-  { id: '3', name: 'Hund', assetKey: 'char3', price: 100 },
-  { id: '4', name: 'Neon Tiger', assetKey: 'char4', price: 200 }
+  { id: '1', name: 'Standard', src: 'mann.png', assetKey: 'char1', price: 0 },
+  { id: '2', name: 'Tiger Classic', src: 'mann2.png', assetKey: 'char2', price: 50 },
+  { id: '3', name: 'Hund', src: 'Hund.png', assetKey: 'char3', price: 100 },
+  { id: '4', name: 'Neon Tiger', src: 'Neon Tiger.png', assetKey: 'char4', price: 200 }
 ];
 
 const caseConfigs = [
-  { id: 1, name: 'Kupferkiste', assetKey: 'case1', price: 50 },
-  { id: 2, name: 'Silberkiste', assetKey: 'case2', price: 100 },
-  { id: 3, name: 'Diamantkiste', assetKey: 'case3', price: 300 }
+  { id: 1, name: 'Kupferkiste', src: 'Kiste.png', assetKey: 'case1', price: 50 },
+  { id: 2, name: 'Silberkiste', src: 'Kiste2.png', assetKey: 'case2', price: 100 },
+  { id: 3, name: 'Diamantkiste', src: 'Kiste3.png', assetKey: 'case3', price: 300 }
 ];
 
 const assetCandidates = {
@@ -76,7 +76,7 @@ function loadImageWithFallback(candidates) {
       img.dataset.loadedOk = 'false';
       tryNext();
     };
-    img.src = src;
+    img.src = encodeURI(src);
   }
 
   tryNext();
@@ -122,18 +122,20 @@ Object.entries(assetCandidates).forEach(([key, candidates]) => {
   images[key] = loadImageWithFallback(candidates);
 });
 
-const menuMusic = new Audio('Music menü.mp3');
-menuMusic.loop = true;
-const gameMusic = new Audio('Music.mp3');
-gameMusic.loop = true;
-const altGameMusic = new Audio('Musik.mp3');
-altGameMusic.loop = true;
-const twoPlayerMusic = new Audio('Epische musik.mp3');
-twoPlayerMusic.loop = true;
-const lockSound = new Audio('Schloss.mp3');
-const coinSound = new Audio('Münze.mp3');
-const caseSound = new Audio('cs2 case.mp3');
-const buttonSound = new Audio('Knopf.mp3');
+function makeAudio(src, loop = false) {
+  const audio = new Audio(encodeURI(src));
+  audio.loop = loop;
+  return audio;
+}
+
+const menuMusic = makeAudio('Music menü.mp3', true);
+const gameMusic = makeAudio('Music.mp3', true);
+const altGameMusic = makeAudio('Musik.mp3', true);
+const twoPlayerMusic = makeAudio('Epische musik.mp3', true);
+const lockSound = makeAudio('Schloss.mp3');
+const coinSound = makeAudio('Münze.mp3');
+const caseSound = makeAudio('cs2 case.mp3');
+const buttonSound = makeAudio('Knopf.mp3');
 
 const allMenus = [
   'startMenu', 'modeMenu', 'difficultyMenu', 'classicMenu', 'twoPlayerChoiceMenu', 'localSetupMenu', 'onlineMenu', 'createLobbyMenu',
@@ -861,10 +863,18 @@ function formatCaseSpinText(count) {
 }
 
 function updateItemsMenu() {
-  document.getElementById('itemsCount2x').textContent = '2X: ' + itemInventory.x2;
-  document.getElementById('itemsCountShield').textContent = 'Schild: ' + itemInventory.shield;
-  document.getElementById('itemsCountBlitz').textContent = 'Blitz: ' + itemInventory.blitz;
-  document.getElementById('itemsCountCaseSpins').innerHTML = 'Kupfer: ' + caseSpins[1] + '<br>Silber: ' + caseSpins[2] + '<br>Diamant: ' + caseSpins[3];
+  document.getElementById('itemsCount2x').innerHTML =
+    `<span style="display:flex;align-items:center;gap:10px;"><img src="${getResolvedAssetSrc('x2', '2X')}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">2X: ${itemInventory.x2}</span>`;
+  document.getElementById('itemsCountShield').innerHTML =
+    `<span style="display:flex;align-items:center;gap:10px;"><img src="${getResolvedAssetSrc('shield', 'Schild')}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Schild: ${itemInventory.shield}</span>`;
+  document.getElementById('itemsCountBlitz').innerHTML =
+    `<span style="display:flex;align-items:center;gap:10px;"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Blitz: ${itemInventory.blitz}</span>`;
+  document.getElementById('itemsCountCaseSpins').innerHTML =
+    `<div style="display:grid;gap:8px;">
+      <span style="display:flex;align-items:center;gap:10px;"><img src="${getCasePreviewSrc(caseConfigs[0])}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Kupfer: ${caseSpins[1]}</span>
+      <span style="display:flex;align-items:center;gap:10px;"><img src="${getCasePreviewSrc(caseConfigs[1])}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Silber: ${caseSpins[2]}</span>
+      <span style="display:flex;align-items:center;gap:10px;"><img src="${getCasePreviewSrc(caseConfigs[2])}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Diamant: ${caseSpins[3]}</span>
+    </div>`;
 }
 
 function updateCasesMenu() {
