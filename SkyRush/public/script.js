@@ -131,7 +131,7 @@ function makeAudio(src, loop = false) {
 const menuMusic = makeAudio('Music menü.mp3', true);
 const gameMusic = makeAudio('Music.mp3', true);
 const altGameMusic = makeAudio('Musik.mp3', true);
-const twoPlayerMusic = makeAudio('EpischeMusikNeu.mp3', true);
+const twoPlayerMusic = makeAudio('Epische musik.mp3', true);
 const lockSound = makeAudio('Schloss.mp3');
 const coinSound = makeAudio('Münze.mp3');
 const caseSound = makeAudio('cs2 case.mp3');
@@ -152,7 +152,7 @@ const hudBottom = document.getElementById('hudBottom');
 
 const levelTargets = { 1: 150, 2: 200, 3: 250, 4: 500 };
 const wolkenBilder = ['wolke1', 'wolke2', 'wolke3', 'wolke4', 'wolke5', 'wolke6'];
-const twoPlayerMusicOptions = ['EpischeMusikNeu.mp3', 'Epische musik2.mp3'];
+const twoPlayerMusicOptions = ['Epische musik.mp3', 'Epische musik2.mp3'];
 const endlessMusicOptions = ['Music.mp3', 'Musik.mp3'];
 const NORMAL_MODE_FACTOR = 1.10;
 const PLAYER_DRAW_W = 92;
