@@ -4,23 +4,23 @@ const canvas = document.getElementById('Canvas01');
 const ctx = canvas.getContext('2d');
 
 const backgrounds = [
-  { id: '1', name: 'Standard', src: 'Hintergrund.jpg', assetKey: 'bg1', price: 0 },
-  { id: '2', name: 'Nacht', src: 'Hintergrund Nacht.png', assetKey: 'bg2', price: 100 },
-  { id: '3', name: 'Weltraum', src: 'Hintergrund Weltraum.jpg', assetKey: 'bg3', price: 200 },
-  { id: '4', name: 'Wald', src: 'Hintergrund Wald.png', assetKey: 'bg4', price: 300 }
+  { id: '1', name: 'Standard', assetKey: 'bg1', price: 0 },
+  { id: '2', name: 'Nacht', assetKey: 'bg2', price: 100 },
+  { id: '3', name: 'Weltraum', assetKey: 'bg3', price: 200 },
+  { id: '4', name: 'Wald', assetKey: 'bg4', price: 300 }
 ];
 
 const characters = [
-  { id: '1', name: 'Standard', src: 'mann.png', assetKey: 'char1', price: 0 },
-  { id: '2', name: 'Tiger Classic', src: 'mann2.png', assetKey: 'char2', price: 50 },
-  { id: '3', name: 'Hund', src: 'Hund.png', assetKey: 'char3', price: 100 },
-  { id: '4', name: 'Neon Tiger', src: 'Neon Tiger.png', assetKey: 'char4', price: 200 }
+  { id: '1', name: 'Standard', assetKey: 'char1', price: 0 },
+  { id: '2', name: 'Tiger Classic', assetKey: 'char2', price: 50 },
+  { id: '3', name: 'Hund', assetKey: 'char3', price: 100 },
+  { id: '4', name: 'Neon Tiger', assetKey: 'char4', price: 200 }
 ];
 
 const caseConfigs = [
-  { id: 1, name: 'Kupferkiste', src: 'Kiste.png', assetKey: 'case1', price: 50 },
-  { id: 2, name: 'Silberkiste', src: 'Kiste2.png', assetKey: 'case2', price: 100 },
-  { id: 3, name: 'Diamantkiste', src: 'Kiste3.png', assetKey: 'case3', price: 300 }
+  { id: 1, name: 'Kupferkiste', assetKey: 'case1', price: 50 },
+  { id: 2, name: 'Silberkiste', assetKey: 'case2', price: 100 },
+  { id: 3, name: 'Diamantkiste', assetKey: 'case3', price: 300 }
 ];
 
 const assetCandidates = {
@@ -76,7 +76,7 @@ function loadImageWithFallback(candidates) {
       img.dataset.loadedOk = 'false';
       tryNext();
     };
-    img.src = encodeURI(src);
+    img.src = src;
   }
 
   tryNext();
@@ -122,20 +122,18 @@ Object.entries(assetCandidates).forEach(([key, candidates]) => {
   images[key] = loadImageWithFallback(candidates);
 });
 
-function makeAudio(src, loop = false) {
-  const audio = new Audio(encodeURI(src));
-  audio.loop = loop;
-  return audio;
-}
-
-const menuMusic = makeAudio('Music menü.mp3', true);
-const gameMusic = makeAudio('Music.mp3', true);
-const altGameMusic = makeAudio('Musik.mp3', true);
-const twoPlayerMusic = makeAudio('Epische musik.mp3', true);
-const lockSound = makeAudio('Schloss.mp3');
-const coinSound = makeAudio('Münze.mp3');
-const caseSound = makeAudio('cs2 case.mp3');
-const buttonSound = makeAudio('Knopf.mp3');
+const menuMusic = new Audio('Music menü.mp3');
+menuMusic.loop = true;
+const gameMusic = new Audio('Music.mp3');
+gameMusic.loop = true;
+const altGameMusic = new Audio('Musik.mp3');
+altGameMusic.loop = true;
+const twoPlayerMusic = new Audio('Epische musik.mp3');
+twoPlayerMusic.loop = true;
+const lockSound = new Audio('Schloss.mp3');
+const coinSound = new Audio('Münze.mp3');
+const caseSound = new Audio('cs2 case.mp3');
+const buttonSound = new Audio('Knopf.mp3');
 
 const allMenus = [
   'startMenu', 'modeMenu', 'difficultyMenu', 'classicMenu', 'twoPlayerChoiceMenu', 'localSetupMenu', 'onlineMenu', 'createLobbyMenu',
@@ -152,8 +150,6 @@ const hudBottom = document.getElementById('hudBottom');
 
 const levelTargets = { 1: 150, 2: 200, 3: 250, 4: 500 };
 const wolkenBilder = ['wolke1', 'wolke2', 'wolke3', 'wolke4', 'wolke5', 'wolke6'];
-const twoPlayerMusicOptions = ['Epische musik.mp3', 'Epische musik2.mp3'];
-const endlessMusicOptions = ['Music.mp3', 'Musik.mp3'];
 const NORMAL_MODE_FACTOR = 1.10;
 const PLAYER_DRAW_W = 92;
 const PLAYER_DRAW_H = 56;
@@ -199,6 +195,7 @@ let ownedBackgrounds = new Set(['1']);
 let ownedCharacters = new Set(['1']);
 for (const bg of backgrounds) if (localStorage.getItem('bg' + bg.id + 'Owned') === 'true') ownedBackgrounds.add(bg.id);
 for (const ch of characters) if (localStorage.getItem('char' + ch.id + 'Owned') === 'true') ownedCharacters.add(ch.id);
+
 let currentBg = localStorage.getItem('bgSelected') || '1';
 let currentCharacter = localStorage.getItem('characterSelected') || '1';
 let highestUnlockedLevel = parseInt(localStorage.getItem('highestUnlockedLevel') || '1', 10);
@@ -733,6 +730,7 @@ function getRewardPool(caseType) {
       { type: 'nothing', qty: 1, weight: 55 }
     ];
   }
+
   if (caseType === 2) {
     return [
       { type: 'x2', qty: 1, weight: 10 },
@@ -747,6 +745,7 @@ function getRewardPool(caseType) {
       { type: 'nothing', qty: 1, weight: 30 }
     ];
   }
+
   return [
     { type: 'x2', qty: 2, weight: 12 },
     { type: 'shield', qty: 2, weight: 12 },
@@ -814,10 +813,12 @@ function animateCaseOpen(caseType, result, sequence, resultIndex) {
     const eased = 1 - Math.pow(1 - progress, 3);
     let centerIndex = Math.floor(startCenterIndex + totalDistance * eased);
     if (centerIndex > resultIndex) centerIndex = resultIndex;
+
     if (centerIndex !== lastRenderedIndex) {
       renderRouletteWindow(sequence, centerIndex);
       lastRenderedIndex = centerIndex;
     }
+
     if (progress < 1) {
       caseAnimationFrame = requestAnimationFrame(step);
     } else {
@@ -835,6 +836,7 @@ function openCase(caseType) {
   if (caseSpinActive) return;
   const cfg = caseConfigs.find(c => c.id === caseType);
   const cost = cfg.price;
+
   if (caseSpins[caseType] > 0) {
     caseSpins[caseType]--;
   } else {
@@ -845,9 +847,11 @@ function openCase(caseType) {
     coinCounter -= cost;
     localStorage.setItem('coins', coinCounter);
   }
+
   saveInventory();
   updateCasesMenu();
   updateItemsMenu();
+
   const result = pickReward(caseType);
   const sequence = [];
   for (let i = 0; i < 56; i++) sequence.push(pickReward(caseType));
@@ -863,24 +867,17 @@ function formatCaseSpinText(count) {
 }
 
 function updateItemsMenu() {
-  document.getElementById('itemsCount2x').innerHTML =
-    `<span style="display:flex;align-items:center;gap:10px;"><img src="${getResolvedAssetSrc('x2', '2X')}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">2X: ${itemInventory.x2}</span>`;
-  document.getElementById('itemsCountShield').innerHTML =
-    `<span style="display:flex;align-items:center;gap:10px;"><img src="${getResolvedAssetSrc('shield', 'Schild')}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Schild: ${itemInventory.shield}</span>`;
-  document.getElementById('itemsCountBlitz').innerHTML =
-    `<span style="display:flex;align-items:center;gap:10px;"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Blitz: ${itemInventory.blitz}</span>`;
-  document.getElementById('itemsCountCaseSpins').innerHTML =
-    `<div style="display:grid;gap:8px;">
-      <span style="display:flex;align-items:center;gap:10px;"><img src="${getCasePreviewSrc(caseConfigs[0])}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Kupfer: ${caseSpins[1]}</span>
-      <span style="display:flex;align-items:center;gap:10px;"><img src="${getCasePreviewSrc(caseConfigs[1])}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Silber: ${caseSpins[2]}</span>
-      <span style="display:flex;align-items:center;gap:10px;"><img src="${getCasePreviewSrc(caseConfigs[2])}" style="width:32px;height:32px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,0.12);padding:3px;">Diamant: ${caseSpins[3]}</span>
-    </div>`;
+  document.getElementById('itemsCount2x').textContent = '2X: ' + itemInventory.x2;
+  document.getElementById('itemsCountShield').textContent = 'Schild: ' + itemInventory.shield;
+  document.getElementById('itemsCountBlitz').textContent = 'Blitz: ' + itemInventory.blitz;
+  document.getElementById('itemsCountCaseSpins').innerHTML = 'Kupfer: ' + caseSpins[1] + '<br>Silber: ' + caseSpins[2] + '<br>Diamant: ' + caseSpins[3];
 }
 
 function updateCasesMenu() {
   document.getElementById('freeSpinsText').textContent = 'Freie Spins gelten immer nur für genau diese Kiste.';
   const grid = document.getElementById('casesGrid');
   grid.innerHTML = '';
+
   caseConfigs.forEach(cfg => {
     const card = document.createElement('div');
     card.className = 'cardBox';
@@ -947,10 +944,12 @@ function buildSkinCard(item, type, owned, selected, onClick, showPrice = false) 
     <div class="smallText">${item.name}${priceText}</div>
     <button class="tightBtn" ${buttonDisabled ? 'disabled' : ''}>${buttonText}</button>
   `;
+
   card.querySelector('button').onclick = () => {
     if (!buttonDisabled) playButtonSound();
     onClick();
   };
+
   if (selected && !showPrice) card.classList.add('selectedCard');
   return card;
 }
@@ -1093,11 +1092,13 @@ function drawSingleEffectCards() {
   if (Date.now() < blitzUntil) effects.push({ img: images.blitz, text: ((blitzUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'blitz' });
   if (shieldHits > 0 && Date.now() < shieldUntil) effects.push({ img: images.shield, text: ((shieldUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'shield' });
   if (!effects.length) return;
+
   const cardWidth = 68;
   const gap = 12;
   const totalWidth = effects.length * cardWidth + (effects.length - 1) * gap;
   let startX = (canvas.width - totalWidth) / 2;
   const y = 10;
+
   effects.forEach((effect, index) => {
     drawCanvasEffectCard(startX + index * (cardWidth + gap), y, effect.img, effect.text, effect.fallback, 56);
   });
@@ -1110,11 +1111,13 @@ function drawTwoPlayerEffectCards(tpPlayer) {
   if (tpPlayer.shieldHits > 0 && Date.now() < tpPlayer.shieldUntil) effects.push({ img: images.shield, text: ((tpPlayer.shieldUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'shield' });
   if (Date.now() < tpPlayer.speedDebuffUntil) effects.push({ img: images.speed, text: ((tpPlayer.speedDebuffUntil - Date.now()) / 1000).toFixed(1) + 's', fallback: 'speed' });
   if (!effects.length) return;
+
   const cardWidth = 56;
   const gap = 8;
   const totalWidth = effects.length * cardWidth + (effects.length - 1) * gap;
   let startX = (canvas.width - totalWidth) / 2;
   const y = tpPlayer.areaTop + 36;
+
   effects.forEach((effect, index) => {
     drawCanvasEffectCard(startX + index * (cardWidth + gap), y, effect.img, effect.text, effect.fallback, 44);
   });
@@ -1366,8 +1369,20 @@ function startOnlineTwoPlayer(lobby) {
   twoPlayer.host = onlineState.role === 'host';
   twoPlayer.guest = onlineState.role === 'guest';
   twoPlayer.background = lobby.bg;
-  twoPlayer.p1 = createTwoPlayerPlayer(lobby.hostName || 'Spieler 1', { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' }, 0, canvas.height / 2 - 3, lobby.hostChar || '1');
-  twoPlayer.p2 = createTwoPlayerPlayer(lobby.guestName || 'Spieler 2', { up: 'arrowup', down: 'arrowdown', jet: '7', ufo: '8', speed: '9', self2x: 'j', selfBlitz: 'k', selfShield: 'l' }, canvas.height / 2 + 3, canvas.height, lobby.guestChar || '3');
+  twoPlayer.p1 = createTwoPlayerPlayer(
+    lobby.hostName || 'Spieler 1',
+    { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' },
+    0,
+    canvas.height / 2 - 3,
+    lobby.hostChar || '1'
+  );
+  twoPlayer.p2 = createTwoPlayerPlayer(
+    lobby.guestName || 'Spieler 2',
+    { up: 'w', down: 's', jet: '1', ufo: '2', speed: '3', self2x: '4', selfBlitz: '5', selfShield: '6' },
+    canvas.height / 2 + 3,
+    canvas.height,
+    lobby.guestChar || '3'
+  );
 
   onlineSendInputEnabled = true;
   updateOnlineHelpText();
@@ -1376,24 +1391,49 @@ function startOnlineTwoPlayer(lobby) {
 
 function updateOnlineHelpText() {
   if (!twoPlayer.p1 || !twoPlayer.p2) return;
-  hudTop.innerHTML = `
-    <div>${twoPlayer.p1.name} (W / S)</div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
-  `;
-  hudBottom.innerHTML = `
-    <div>${twoPlayer.p2.name} (↑ / ↓)</div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>7 = Jet senden <span class="priceRed">5</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>8 = UFO senden <span class="priceRed">8</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>9 = Speed senden <span class="priceRed">10</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>J = 2X kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>K = Blitz kaufen <span class="priceRed">6</span></span></div>
-    <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>L = Schild kaufen <span class="priceRed">8</span></span></div>
-  `;
+
+  if (twoPlayer.online) {
+    hudTop.innerHTML = `
+      <div>${twoPlayer.p1.name} (W / S)</div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
+    `;
+
+    hudBottom.innerHTML = `
+      <div>${twoPlayer.p2.name} (W / S)</div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
+    `;
+  } else {
+    hudTop.innerHTML = `
+      <div>${twoPlayer.p1.name} (W / S)</div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>1 = Jet senden <span class="priceRed">5</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>2 = UFO senden <span class="priceRed">8</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>3 = Speed senden <span class="priceRed">10</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>4 = 2X kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>5 = Blitz kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>6 = Schild kaufen <span class="priceRed">8</span></span></div>
+    `;
+
+    hudBottom.innerHTML = `
+      <div>${twoPlayer.p2.name} (↑ / ↓)</div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('jet', 'Jet')}"><span>7 = Jet senden <span class="priceRed">5</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('ufo', 'UFO')}"><span>8 = UFO senden <span class="priceRed">8</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('speed', 'Speed')}"><span>9 = Speed senden <span class="priceRed">10</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('x2', '2X')}"><span>J = 2X kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('blitz', 'Blitz')}"><span>K = Blitz kaufen <span class="priceRed">6</span></span></div>
+      <div class="attackLine"><img src="${getResolvedAssetSrc('shield', 'Schild')}"><span>L = Schild kaufen <span class="priceRed">8</span></span></div>
+    `;
+  }
+
   hudTop.classList.remove('hidden');
   hudBottom.classList.remove('hidden');
 }
@@ -1427,8 +1467,8 @@ function serializeInputState() {
 
   if (onlineState.role === 'guest') {
     return {
-      up: !!keyState['arrowup'],
-      down: !!keyState['arrowdown'],
+      up: !!keyState['w'],
+      down: !!keyState['s'],
       actions: {
         p1jet: false,
         p1ufo: false,
@@ -1436,12 +1476,12 @@ function serializeInputState() {
         p1x2: false,
         p1blitz: false,
         p1shield: false,
-        p2jet: !!keyState['7'],
-        p2ufo: !!keyState['8'],
-        p2speed: !!keyState['9'],
-        p2x2: !!keyState['j'],
-        p2blitz: !!keyState['k'],
-        p2shield: !!keyState['l']
+        p2jet: !!keyState['1'],
+        p2ufo: !!keyState['2'],
+        p2speed: !!keyState['3'],
+        p2x2: !!keyState['4'],
+        p2blitz: !!keyState['5'],
+        p2shield: !!keyState['6']
       }
     };
   }
@@ -1541,21 +1581,25 @@ function updateSingleScoreTick() {
   if (adminDoubleScore) gain *= 2;
   scoreFloat += gain;
   score = Math.floor(scoreFloat);
+
   if (score > highscore) {
     highscore = score;
     localStorage.setItem('highscore', highscore);
   }
+
   if (selectedMode === 'classic') {
     const target = levelTargets[currentLevel];
     if (score >= target) {
       score = target;
       gameActive = false;
       pause = true;
+
       if (currentLevel < 4 && highestUnlockedLevel < currentLevel + 1) {
         highestUnlockedLevel = currentLevel + 1;
         localStorage.setItem('highestUnlockedLevel', highestUnlockedLevel);
         updateClassicLevelButtons();
       }
+
       giveClassicReward(currentLevel);
       openOnly(document.getElementById('levelCompleteMenu'));
     }
@@ -1565,6 +1609,7 @@ function updateSingleScoreTick() {
 function updateTwoPlayerScoreTick() {
   if (!twoPlayer.active || twoPlayer.over || pause || !twoPlayer.p1 || !twoPlayer.p2) return;
   if (twoPlayer.online && !twoPlayer.host) return;
+
   [twoPlayer.p1, twoPlayer.p2].forEach(tp => {
     const speedFactor = getSpeedFactor(tp.score, NORMAL_MODE_FACTOR);
     let gain = speedFactor;
@@ -1581,10 +1626,18 @@ function updateSinglePowerText() {
 
 function spawnSinglePeriodicThings() {
   if (gameActive && !pause && !gameOver) spawnSingleCloud();
+
   if (twoPlayer.active && !twoPlayer.over && !pause && (!twoPlayer.online || twoPlayer.host)) {
     [twoPlayer.p1, twoPlayer.p2].forEach(tp => {
       if (!tp) return;
-      if (tp.clouds.length < 4) tp.clouds.push({ x: canvas.width + Math.random() * 80, y: tp.areaTop + Math.random() * 75, speed: 0.7 + Math.random() * 1.1, img: wolkenBilder[Math.floor(Math.random() * wolkenBilder.length)] });
+      if (tp.clouds.length < 4) {
+        tp.clouds.push({
+          x: canvas.width + Math.random() * 80,
+          y: tp.areaTop + Math.random() * 75,
+          speed: 0.7 + Math.random() * 1.1,
+          img: wolkenBilder[Math.floor(Math.random() * wolkenBilder.length)]
+        });
+      }
     });
   }
 }
@@ -1593,9 +1646,18 @@ function spawnCoinsPeriodic() {
   if (gameActive && !pause && !gameOver && Math.random() < 0.45) {
     coins.push({ x: canvas.width, y: Math.random() * (canvas.height - 50), speed: 4.1 });
   }
+
   if (twoPlayer.active && !twoPlayer.over && !pause && (!twoPlayer.online || twoPlayer.host)) {
     [twoPlayer.p1, twoPlayer.p2].forEach(tp => {
-      if (Math.random() < 0.65) tp.coinItems.push({ x: canvas.width + Math.random() * 80, y: tp.areaTop + 26 + Math.random() * Math.max(20, tp.areaBottom - tp.areaTop - 70), w: 40, h: 40, speed: 3.8 });
+      if (Math.random() < 0.65) {
+        tp.coinItems.push({
+          x: canvas.width + Math.random() * 80,
+          y: tp.areaTop + 26 + Math.random() * Math.max(20, tp.areaBottom - tp.areaTop - 70),
+          w: 40,
+          h: 40,
+          speed: 3.8
+        });
+      }
     });
   }
 }
@@ -1609,12 +1671,20 @@ function spawnPowerupsPeriodic() {
       powerUpCooldownUntil = Date.now() + 9000;
     }
   }
+
   if (twoPlayer.active && !twoPlayer.over && !pause && (!twoPlayer.online || twoPlayer.host)) {
     [twoPlayer.p1, twoPlayer.p2].forEach(tp => {
       if (Math.random() < 0.48 && tp.powerItems.length < 2) {
         const r = Math.random();
         const type = r < 0.33 ? '2x' : r < 0.66 ? 'blitz' : 'shield';
-        tp.powerItems.push({ type, x: canvas.width + Math.random() * 80, y: tp.areaTop + 28 + Math.random() * Math.max(20, tp.areaBottom - tp.areaTop - 72), w: 40, h: 40, speed: 3.7 });
+        tp.powerItems.push({
+          type,
+          x: canvas.width + Math.random() * 80,
+          y: tp.areaTop + 28 + Math.random() * Math.max(20, tp.areaBottom - tp.areaTop - 72),
+          w: 40,
+          h: 40,
+          speed: 3.7
+        });
       }
     });
   }
@@ -1633,13 +1703,13 @@ function serializeTwoPlayerState() {
 
 function applyTwoPlayerSnapshot(snapshot) {
   if (!snapshot) return;
-  const realSnapshot = snapshot.snapshot || snapshot;
-  bgX = realSnapshot.bgX || 0;
-  twoPlayer.background = realSnapshot.background || '1';
-  twoPlayer.p1 = realSnapshot.p1;
-  twoPlayer.p2 = realSnapshot.p2;
-  twoPlayer.over = !!realSnapshot.over;
-  twoPlayer.winner = realSnapshot.winner || '';
+  bgX = snapshot.bgX || 0;
+  twoPlayer.background = snapshot.background || '1';
+  twoPlayer.p1 = snapshot.p1;
+  twoPlayer.p2 = snapshot.p2;
+  twoPlayer.over = !!snapshot.over;
+  twoPlayer.winner = snapshot.winner || '';
+
   if (twoPlayer.over) {
     document.getElementById('twoPlayerWinnerText').textContent = twoPlayer.winner || 'Spiel vorbei';
     openOnly(document.getElementById('twoPlayerGameOverMenu'));
@@ -1697,6 +1767,7 @@ function updateSinglePlayer() {
 
   enemies.forEach(enemy => {
     enemy.x -= enemy.speedMul * 5.8 * speedFactor;
+
     if (enemy.x < -100) {
       const replacement = createVariedEnemy(0, canvas.height, getNextEnemyX(enemies), enemy.type);
       enemy.x = replacement.x;
@@ -1719,10 +1790,12 @@ function updateSinglePlayer() {
   for (let i = coins.length - 1; i >= 0; i--) {
     const c = coins[i];
     c.x -= c.speed * speedFactor;
+
     if (c.x < -50) {
       coins.splice(i, 1);
       continue;
     }
+
     if (Math.abs((player.x + player.hitW / 2) - (c.x + 21)) < 40 && Math.abs((player.y + player.hitH / 2) - (c.y + 21)) < 40) {
       coinCounter++;
       localStorage.setItem('coins', coinCounter);
@@ -1734,10 +1807,12 @@ function updateSinglePlayer() {
   for (let i = powerUps.length - 1; i >= 0; i--) {
     const p = powerUps[i];
     p.x -= p.speed * speedFactor;
+
     if (p.x + p.w < 0) {
       powerUps.splice(i, 1);
       continue;
     }
+
     if (Math.abs((player.x + player.hitW / 2) - (p.x + p.w / 2)) < 42 && Math.abs((player.y + player.hitH / 2) - (p.y + p.h / 2)) < 42) {
       applySinglePower(p.type);
       powerUps.splice(i, 1);
@@ -1793,10 +1868,12 @@ function updateTwoPlayerPlayer(tpPlayer, stateForMove) {
   for (let i = tpPlayer.coinItems.length - 1; i >= 0; i--) {
     const c = tpPlayer.coinItems[i];
     c.x -= c.speed * speedFactor;
+
     if (c.x + c.w < 0) {
       tpPlayer.coinItems.splice(i, 1);
       continue;
     }
+
     if (Math.abs((tpPlayer.x + tpPlayer.hitW / 2) - (c.x + c.w / 2)) < 38 && Math.abs((tpPlayer.y + tpPlayer.hitH / 2) - (c.y + c.h / 2)) < 38) {
       tpPlayer.coins++;
       playCoinPickup();
@@ -1807,10 +1884,12 @@ function updateTwoPlayerPlayer(tpPlayer, stateForMove) {
   for (let i = tpPlayer.powerItems.length - 1; i >= 0; i--) {
     const p = tpPlayer.powerItems[i];
     p.x -= p.speed * speedFactor;
+
     if (p.x + p.w < 0) {
       tpPlayer.powerItems.splice(i, 1);
       continue;
     }
+
     if (Math.abs((tpPlayer.x + tpPlayer.hitW / 2) - (p.x + p.w / 2)) < 40 && Math.abs((tpPlayer.y + tpPlayer.hitH / 2) - (p.y + p.h / 2)) < 40) {
       applyTwoPlayerPower(tpPlayer, p.type);
       tpPlayer.powerItems.splice(i, 1);
@@ -1835,7 +1914,7 @@ function updateTwoPlayer() {
       : { up: !!remoteKeyState.host?.up, down: !!remoteKeyState.host?.down };
 
     p2Move = twoPlayer.guest
-      ? { up: !!keyState['arrowup'], down: !!keyState['arrowdown'] }
+      ? { up: !!keyState['w'], down: !!keyState['s'] }
       : { up: !!remoteKeyState.guest?.up, down: !!remoteKeyState.guest?.down };
   }
 
@@ -1877,6 +1956,18 @@ function updateTwoPlayer() {
 
   if (twoPlayer.over) {
     stopAllGameMusic();
+
+    if (twoPlayer.online) {
+      if (socket && onlineState.code) {
+        socket.emit('online:match-over', {
+          code: onlineState.code,
+          winner: twoPlayer.winner
+        });
+      }
+      returnToOnlineLobbyAfterMatch();
+      return;
+    }
+
     document.getElementById('twoPlayerWinnerText').textContent = twoPlayer.winner;
     openOnly(document.getElementById('twoPlayerGameOverMenu'));
   }
@@ -1939,6 +2030,7 @@ function resetAllData() {
     'highscore', 'coins', 'bgSelected', 'characterSelected', 'highestUnlockedLevel', 'menuVolume', 'gameVolume', 'keybind_up', 'keybind_down',
     'keybind_pause', 'keybind_restart', 'sfxMuted', 'inv_x2', 'inv_shield', 'inv_blitz', 'inv_caseSpin1', 'inv_caseSpin2', 'inv_caseSpin3'
   ].forEach(k => localStorage.removeItem(k));
+
   backgrounds.forEach(bg => { if (bg.id !== '1') localStorage.removeItem('bg' + bg.id + 'Owned'); });
   characters.forEach(ch => { if (ch.id !== '1') localStorage.removeItem('char' + ch.id + 'Owned'); });
 
@@ -1993,6 +2085,7 @@ function bindUI() {
     if (pause && (gameActive || twoPlayer.active)) openOnly(document.getElementById('pauseMenu'));
     else openOnly(document.getElementById('startMenu'));
   };
+
   document.getElementById('classicModeBtn').onclick = () => { updateClassicLevelButtons(); openOnly(document.getElementById('classicMenu')); };
   document.getElementById('endlessModeBtn').onclick = () => openOnly(document.getElementById('difficultyMenu'));
   document.getElementById('twoPlayerModeBtn').onclick = () => openOnly(document.getElementById('twoPlayerChoiceMenu'));
@@ -2029,10 +2122,9 @@ function bindUI() {
   document.getElementById('onlineStartBtn').onclick = () => {
     if (!socket || !onlineState.code) return;
     const lobby = onlineState.lobby;
-    if (lobby) {
-      if (!lobby.guestName) return showToast('Warte auf Spieler 2.');
-      if (!lobby.hostReady || !lobby.guestReady) return showToast('Beide Spieler müssen bereit sein.');
-    }
+    if (!lobby) return showToast('Lobby nicht gefunden.');
+    if (!lobby.guestName) return showToast('Warte auf Spieler 2.');
+    if (!lobby.hostReady || !lobby.guestReady) return showToast('Beide Spieler müssen bereit sein.');
     socket.emit('online:start', { code: onlineState.code });
   };
 
@@ -2058,18 +2150,32 @@ function bindUI() {
   });
 
   document.getElementById('localSetupBackBtn').onclick = () => {
-    if (localSetupStep > 0) { localSetupStep--; renderLocalSetup(); }
-    else openOnly(document.getElementById('twoPlayerChoiceMenu'));
+    if (localSetupStep > 0) {
+      localSetupStep--;
+      renderLocalSetup();
+    } else {
+      openOnly(document.getElementById('twoPlayerChoiceMenu'));
+    }
   };
 
   document.getElementById('localSetupNextBtn').onclick = () => {
     if (localSetupStep === 0) localSetup.p1Name = document.getElementById('localName1Input').value.trim() || 'Spieler 1';
     else if (localSetupStep === 1) localSetup.p2Name = document.getElementById('localName2Input').value.trim() || 'Spieler 2';
-    if (localSetupStep < 4) { localSetupStep++; renderLocalSetup(); }
-    else startLocalTwoPlayer();
+
+    if (localSetupStep < 4) {
+      localSetupStep++;
+      renderLocalSetup();
+    } else {
+      startLocalTwoPlayer();
+    }
   };
 
-  document.getElementById('resumeBtn').onclick = () => { pause = false; closeAllMenus(); resumeCurrentGameMusic(); };
+  document.getElementById('resumeBtn').onclick = () => {
+    pause = false;
+    closeAllMenus();
+    resumeCurrentGameMusic();
+  };
+
   document.getElementById('pauseSettingsBtn').onclick = () => openOnly(document.getElementById('settingsMenu'));
   document.getElementById('pauseToMenuBtn').onclick = () => goToMainMenu();
   document.getElementById('singleRestartBtn').onclick = () => { if (selectedMode === 'classic') startClassicLevel(currentLevel); else startEndless(); };
@@ -2087,7 +2193,11 @@ function bindUI() {
 
   document.getElementById('twoPlayerAdjustBtn').onclick = () => {
     if (twoPlayer.online) openOnly(document.getElementById('onlineLobbyMenu'));
-    else { localSetupStep = 0; openOnly(document.getElementById('localSetupMenu')); renderLocalSetup(); }
+    else {
+      localSetupStep = 0;
+      openOnly(document.getElementById('localSetupMenu'));
+      renderLocalSetup();
+    }
   };
 
   document.getElementById('twoPlayerToMenuBtn').onclick = () => {
@@ -2107,7 +2217,9 @@ function bindUI() {
       document.getElementById('adminDoubleScore').checked = adminDoubleScore;
       document.getElementById('adminCoinsInput').value = coinCounter;
       openOnly(document.getElementById('adminMenu'));
-    } else playLockSound();
+    } else {
+      playLockSound();
+    }
   };
 
   document.getElementById('adminLoginBackBtn').onclick = () => openOnly(document.getElementById('startMenu'));
@@ -2175,10 +2287,42 @@ function goToMainMenu() {
   startMenuMusic();
 }
 
+function returnToOnlineLobbyAfterMatch(serverLobby = null) {
+  stopAllGameMusic();
+  onlineSendInputEnabled = false;
+  pause = false;
+  gameActive = false;
+  gameOver = false;
+
+  twoPlayer.active = false;
+  twoPlayer.over = false;
+  twoPlayer.p1 = null;
+  twoPlayer.p2 = null;
+
+  remoteKeyState = {};
+  hideTwoPlayerHelp();
+
+  if (serverLobby) {
+    onlineState.lobby = serverLobby;
+  } else if (onlineState.lobby) {
+    onlineState.lobby.started = false;
+    onlineState.lobby.hostReady = false;
+    onlineState.lobby.guestReady = false;
+  }
+
+  if (onlineState.lobby) {
+    applyLobbyChoices(onlineState.lobby);
+  }
+
+  openOnly(document.getElementById('onlineLobbyMenu'));
+}
+
 function setupSocket() {
   if (!socket) return;
 
-  socket.on('connect', () => { onlineState.connected = true; });
+  socket.on('connect', () => {
+    onlineState.connected = true;
+  });
 
   socket.on('disconnect', () => {
     onlineState.connected = false;
@@ -2200,18 +2344,14 @@ function setupSocket() {
     applyLobbyChoices(lobby);
   });
 
-  socket.on('online:game-start', lobby => {
-    startOnlineTwoPlayer(lobby);
-  });
-
   socket.on('online:start-game', lobby => {
     startOnlineTwoPlayer(lobby);
   });
 
-  socket.on('online:state', snapshot => {
+  socket.on('online:state', payload => {
+    const snapshot = payload?.snapshot || payload;
     if (twoPlayer.online && twoPlayer.guest) {
-      const actualSnapshot = snapshot && snapshot.snapshot ? snapshot.snapshot : snapshot;
-      applyTwoPlayerSnapshot(actualSnapshot);
+      applyTwoPlayerSnapshot(snapshot);
     }
   });
 
@@ -2219,9 +2359,12 @@ function setupSocket() {
     remoteKeyState[role] = input;
   });
 
+  socket.on('online:match-over', payload => {
+    returnToOnlineLobbyAfterMatch(payload?.lobby || null);
+  });
+
   socket.on('online:force-menu', () => {
     onlineState = { role: null, code: '', lobby: null, ready: false, connected: false };
-    showToast('Online-Lobby wurde geschlossen.');
     goToMainMenu();
   });
 
@@ -2289,6 +2432,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => {
   const pressed = e.key.toLowerCase();
   keyState[pressed] = false;
+
   if (twoPlayer.online && onlineSendInputEnabled && socket && onlineState.role) {
     socket.emit('online:input', { code: onlineState.code, role: onlineState.role, input: serializeInputState() });
   }
