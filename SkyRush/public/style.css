@@ -484,3 +484,33 @@ input[type="number"] {
     min-width: 340px;
   }
 }
+
+
+#skinsMenu .menuCard,
+#shopMenu .menuCard {
+  width: min(1220px, 98vw);
+  max-height: 96vh;
+}
+
+#skinsMenu .cardBox,
+#shopMenu .cardBox {
+  min-height: 170px;
+  padding: 10px;
+}
+
+#skinsMenu .previewWrap,
+#shopMenu .previewWrap {
+  min-height: 100px;
+  margin-bottom: 6px;
+}
+
+#skinsMenu .skinPreview,
+#shopMenu .skinPreview {
+  height: 92px;
+}
+
+#skinsMenu .characterPreview,
+#shopMenu .characterPreview {
+  height: 84px;
+  max-width: 120px;
+}
